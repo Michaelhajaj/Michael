@@ -2,30 +2,39 @@
    הגדרות האתר – כאן משנים את כל הפרטים שלך
    ========================================================== */
 const SITE_CONFIG = {
-  businessName: "מיכאל עבודות גבס",
-  slogan: "עבודות גבס ותקרות אקוסטיות ברמת גימור הגבוהה ביותר",
-  phone: "058-5766956",          // ← מספר הטלפון שלך
-  whatsapp: "972585766956",      // ← מספר וואטסאפ בפורמט בינלאומי, בלי 0 ובלי מקפים
-  email: "michaelhajaj10@gmail.com",// ← אימייל (לא חובה)
-  area: "מרכז והשרון",           // ← אזור השירות
-  yearsExperience: 10,           // ← שנות ניסיון
-  projectsDone: 300,             // ← מספר פרויקטים
-  instagram: "",                 // ← קישור לאינסטגרם (לא חובה)
-  facebook: ""                   // ← קישור לפייסבוק (לא חובה)
+  businessName: "Michael Hajaj",
+  brand: "MICHAEL HAJAJ",             // ← השם בכותרת
+  brandSub: "עבודות גבס וצבעים דקורטיביים",
+  phone: "058-5766956",
+  whatsapp: "972585766956",          // ← וואטסאפ בפורמט בינלאומי
+  email: "michaelhajaj10@gmail.com",
+  area: "אשדוד והסביבה",
+  heroImage: "images/works/arava-laser-ashdod-1.jpg",
+  contactImage: "images/works/fine-line-ashdod.jpg",   // ← תמונת הפתיחה הגדולה
+  yearsExperience: 4,
+  instagram: "",                     // ← קישור לאינסטגרם (לא חובה)
+  facebook: ""                       // ← קישור לפייסבוק (לא חובה)
 };
 
 /* ==========================================================
    העבודות שלך – הגלריה
    כדי להוסיף עבודה:
    1. שים את התמונה בתיקייה images/works
-   2. הוסף שורה לרשימה למטה עם שם הקובץ, כותרת וקטגוריה
-   קטגוריות אפשריות: "תקרות", "קירות", "תאורה", "נישות", "שיפוצים"
+   2. הוסף שורה לרשימה למטה
+   before: "תמונה.jpg" = תמונת "לפני" – מוסיפה השוואת לפני/אחרי באתר
+   הגלריה מסדרת את התמונות בגדלים שונים באופן אוטומטי.
+   כמה תמונות לאותו פרויקט: images: ["a.jpg", "b.jpg"] במקום image
+   העבודה הראשונה ברשימה מוצגת כ"פרויקט נבחר" בגדול.
    ========================================================== */
 const WORKS = [
-  { image: "images/works/sample-1.svg", title: "תקרה צפה עם פס לד", category: "תאורה", location: "תל אביב" },
-  { image: "images/works/sample-2.svg", title: "קיר טלוויזיה עם נישות", category: "נישות", location: "רעננה" },
-  { image: "images/works/sample-3.svg", title: "הנמכת תקרה בסלון", category: "תקרות", location: "הרצליה" },
-  { image: "images/works/sample-4.svg", title: "מחיצת גבס לחדר עבודה", category: "קירות", location: "כפר סבא" },
-  { image: "images/works/sample-5.svg", title: "תקרה מדורגת במטבח", category: "תקרות", location: "פתח תקווה" },
-  { image: "images/works/sample-6.svg", title: "שיפוץ דירה – גבס מלא", category: "שיפוצים", location: "רמת גן" }
+  { images: ["images/works/arava-laser-ashdod-1.jpg", "images/works/arava-laser-ashdod-2.jpg"], title: "טיח ערבה – מכון לייזר", category: "טיח ערבה", location: "אשדוד",
+    text: "חיפוי קירות בטיח ערבה בגוון אפור-בטון, עם מדפי נישה מגבס ותאורת לד נסתרת. המרקם הטבעי של הטיח יוצר תחושה רגועה ויוקרתית, כמו שמכון טיפולים צריך." },
+  { images: ["images/works/bathroom-ashkelon-1.jpg", "images/works/bathroom-ashkelon-2.jpg", "images/works/bathroom-ashkelon-3.jpg"],
+    title: "שיפוץ שירותים קומפלט", category: "שיפוצים", location: "אשקלון" },
+  { images: ["images/works/salon-ashdod-2.jpg", "images/works/salon-ashdod-1.jpg"], title: "מדפי פינה מוארים – מספרה", category: "נישות ותאורה", location: "אשדוד" },
+  { image: "images/works/sloped-ceiling-tlv.jpg", title: "תקרת גבס משופעת", category: "תקרות", location: "תל אביב" },
+  { image: "images/works/fine-line-ashdod.jpg", title: "תקרה אקוסטית פיין ליין שחור", category: "תקרות אקוסטיות", location: "אשדוד",
+    before: "images/works/fine-line-ashdod-before.jpg",
+    text: "תקרה אקוסטית עם פרופיל פיין ליין שחור דק ותאורת פאנלים שקועה. הקווים השחורים יוצרים גריד גרפי ונקי, והלוחות האקוסטיים משפרים את השקט בחלל." },
+  { images: ["images/works/bath-ceiling-shtulim-1.jpg", "images/works/bath-ceiling-shtulim-2.jpg"], title: "תקרת גבס לאמבטיה – שלבי ביצוע", category: "תקרות", location: "שתולים" }
 ];

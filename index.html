@@ -3,217 +3,226 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>עבודות גבס ותקרות | הצעת מחיר ללא התחייבות</title>
-  <meta name="description" content="קבלן גבס מקצועי – תקרות גבס, הנמכות, תאורה נסתרת, נישות, קירות ומחיצות. גימור מושלם, עמידה בזמנים והצעת מחיר ללא התחייבות.">
-  <meta property="og:title" content="עבודות גבס ותקרות – גימור ברמה אחרת">
-  <meta property="og:description" content="תקרות גבס, תאורה נסתרת, נישות וקירות. צפו בעבודות וקבלו הצעת מחיר.">
-  <meta name="theme-color" content="#1c2430">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231c2430'/%3E%3Cpath d='M14 22h36v6H14zM20 32h24v4H20zM14 42h36v4H14z' fill='%23c8a165'/%3E%3C/svg%3E">
+  <title>Michael Hajaj | עבודות גבס וצבעים דקורטיביים</title>
+  <meta name="description" content="עבודות גבס ברמת גימור יוקרתית באשדוד והסביבה – תקרות צפות, תאורה נסתרת, קירות טלוויזיה, נישות ומחיצות. תיאום פגישת ייעוץ.">
+  <meta property="og:title" content="Michael Hajaj | עבודות גבס וצבעים דקורטיביים">
+  <meta property="og:description" content="תקרות, תאורה נסתרת וקירות מעוצבים – ברמת גימור ללא פשרות. אשדוד והסביבה.">
+  <meta property="og:image" content="images/logo.jpg">
+  <meta name="theme-color" content="#0e0e0d">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23111'/%3E%3Ctext x='32' y='43' font-family='Georgia,serif' font-size='30' text-anchor='middle' fill='%23c9a55c'%3EMH%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&family=Frank+Ruhl+Libre:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500&family=Assistant:wght@200;300;400;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="is-loading">
 
-  <!-- ===== Header ===== -->
+  <!-- Loader -->
+  <div class="loader" aria-hidden="true">
+    <img class="loader__logo" src="images/logo.jpg" alt="">
+  </div>
+
+  <!-- Header -->
   <header class="header" id="top">
-    <div class="container header__inner">
-      <a href="#top" class="logo">
-        <span class="logo__mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32"><path d="M4 9h24v3H4zM8 15h16v2H8zM4 21h24v2H4z"/></svg>
-        </span>
-        <span class="logo__text" data-config="businessName">עבודות גבס</span>
+    <div class="header__inner">
+      <a href="#contact" class="header__cta">פגישת ייעוץ</a>
+      <a href="#top" class="brand" aria-label="דף הבית">
+        <span class="brand__name" data-config="brand">MICHAEL HAJAJ</span>
+        <span class="brand__sub" data-config="brandSub">עבודות גבס וצבעים דקורטיביים</span>
       </a>
-      <nav class="nav" id="nav">
-        <a href="#services">שירותים</a>
-        <a href="#gallery">עבודות</a>
-        <a href="#about">אודות</a>
-        <a href="#process">איך זה עובד</a>
-        <a href="#contact" class="btn btn--small">הצעת מחיר</a>
-      </nav>
-      <button class="nav-toggle" id="navToggle" aria-label="פתיחת תפריט" aria-expanded="false">
-        <span></span><span></span><span></span>
+      <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__label">תפריט</span>
+        <span class="menu-btn__icon"><i></i><i></i></span>
       </button>
     </div>
   </header>
 
-  <!-- ===== Hero ===== -->
-  <section class="hero">
-    <div class="hero__bg" aria-hidden="true"></div>
-    <div class="container hero__inner">
-      <p class="eyebrow">קבלן גבס מוסמך · <span data-config="area">מרכז והשרון</span></p>
-      <h1>גבס בגימור<br><em>שרואים את ההבדל</em></h1>
-      <p class="hero__lead" data-config="slogan">עבודות גבס ותקרות אקוסטיות ברמת גימור הגבוהה ביותר</p>
-      <div class="hero__actions">
-        <a href="#contact" class="btn">לקבלת הצעת מחיר</a>
-        <a href="#gallery" class="btn btn--ghost">לצפייה בעבודות</a>
+  <!-- Fullscreen menu -->
+  <div class="menu" id="menu" hidden>
+    <nav class="menu__nav">
+      <a href="#collection"><small>01</small>הקולקציה</a>
+      <a href="#craft"><small>02</small>האומנות</a>
+      <a href="#services"><small>03</small>שירותים</a>
+      <a href="#process"><small>04</small>התהליך</a>
+      <a href="#contact"><small>05</small>יצירת קשר</a>
+    </nav>
+    <div class="menu__foot">
+      <a class="js-phone" href="tel:"><span data-config="phone"></span></a>
+      <span data-config="area"></span>
+    </div>
+  </div>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero__media" aria-hidden="true"><div class="hero__img"></div></div>
+      <div class="hero__content">
+        <p class="kicker"><span data-config="area">אשדוד והסביבה</span></p>
+        <h1 class="hero__title">
+          <span class="line"><span>הדיוק</span></span>
+          <span class="line"><span>שבין האור</span></span>
+          <span class="line"><span><em>לצל</em></span></span>
+        </h1>
+        <a href="#collection" class="link-arrow link-arrow--light">לגלות את העבודות</a>
       </div>
-      <ul class="stats">
-        <li><strong><span data-config="yearsExperience">10</span>+</strong><span>שנות ניסיון</span></li>
-        <li><strong><span data-config="projectsDone">300</span>+</strong><span>פרויקטים</span></li>
-        <li><strong>100%</strong><span>עמידה בזמנים</span></li>
-      </ul>
-    </div>
-  </section>
+      <div class="hero__scroll" aria-hidden="true"><span></span></div>
+    </section>
 
-  <!-- ===== Services ===== -->
-  <section class="section" id="services">
-    <div class="container">
-      <header class="section__head">
-        <p class="eyebrow">מה אנחנו עושים</p>
-        <h2>שירותי גבס מקצה לקצה</h2>
-        <p>מתכנון ועד גימור מוכן לצבע – כל פרויקט מבוצע בקפידה, בניקיון ובאחריות מלאה.</p>
-      </header>
-      <div class="services">
-        <article class="card">
-          <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M3 6h18M5 10h14M3 14h18"/></svg></div>
-          <h3>תקרות והנמכות</h3>
-          <p>הנמכות תקרה, תקרות מדורגות ותקרות צפות להסתרת צנרת ומיזוג ולמראה נקי.</p>
-        </article>
-        <article class="card">
-          <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg></div>
-          <h3>תאורה נסתרת</h3>
-          <p>פסי לד, קרניזים ותאורה עקיפה שמשדרגים כל חלל ויוצרים אווירה.</p>
-        </article>
-        <article class="card">
-          <div class="card__icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><rect x="7" y="8" width="10" height="6"/></svg></div>
-          <h3>קירות טלוויזיה ונישות</h3>
-          <p>קירות מעוצבים, נישות לתאורה ולאחסון ומדפי גבס בהתאמה אישית.</p>
-        </article>
-        <article class="card">
-          <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M4 3v18M12 3v18M20 3v18M4 12h16"/></svg></div>
-          <h3>מחיצות וקירות</h3>
-          <p>חלוקת חללים, תוספת חדרים ומחיצות עם בידוד אקוסטי ותרמי.</p>
-        </article>
-        <article class="card">
-          <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M3 12c3-6 6 6 9 0s6 6 9 0"/></svg></div>
-          <h3>אקוסטיקה</h3>
-          <p>תקרות ופתרונות אקוסטיים למשרדים, חדרי ישיבות, אולפנים ובתים.</p>
-        </article>
-        <article class="card">
-          <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg></div>
-          <h3>תיקונים ושיפוצים</h3>
-          <p>תיקון סדקים ונזקי רטיבות, החלפת לוחות וחידוש עבודות קיימות.</p>
-        </article>
+    <!-- Statement -->
+    <section class="statement">
+      <p class="kicker kicker--center">מאז <span id="sinceYear"></span></p>
+      <p class="statement__text reveal">
+        כל תקרה מתחילה בקו אחד.<br>
+        אנחנו מקדישים לו את <em>כל תשומת הלב</em> –<br>
+        עד שהוא נעלם לתוך החלל, ונשאר רק האור.
+      </p>
+      <div class="statement__sign reveal">
+        <span class="rule"></span>
+        <span><strong data-config="yearsExperience">4</strong> שנים של עבודה בהתאמה אישית</span>
+        <span class="rule"></span>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ===== Gallery ===== -->
-  <section class="section section--alt" id="gallery">
-    <div class="container">
-      <header class="section__head">
-        <p class="eyebrow">תיק עבודות</p>
-        <h2>עבודות שביצענו</h2>
-        <p>כל תמונה – פרויקט אמיתי. לחצו על תמונה להגדלה.</p>
+    <!-- Featured -->
+    <section class="featured" id="featured">
+      <div class="featured__media reveal-img"><img id="featuredImg" alt=""></div>
+      <div class="featured__text">
+        <p class="kicker">פרויקט נבחר</p>
+        <h2 id="featuredTitle" class="reveal"></h2>
+        <p id="featuredDesc" class="reveal"></p>
+        <p class="featured__meta reveal"><span id="featuredLoc"></span></p>
+      </div>
+    </section>
+
+    <!-- Collection -->
+    <section class="collection" id="collection">
+      <header class="sec-head">
+        <p class="kicker">הקולקציה</p>
+        <h2 class="reveal">עבודות נבחרות</h2>
+        <div class="filters" id="filters" role="toolbar" aria-label="סינון לפי קטגוריה"></div>
       </header>
-      <div class="filters" id="filters" role="tablist" aria-label="סינון עבודות"></div>
-      <div class="gallery" id="galleryGrid"></div>
-    </div>
-  </section>
+      <div class="mosaic" id="mosaic"></div>
+    </section>
 
-  <!-- ===== About ===== -->
-  <section class="section" id="about">
-    <div class="container about">
-      <div class="about__visual" aria-hidden="true">
-        <div class="about__frame">
-          <span class="about__badge"><strong data-config="yearsExperience">10</strong>שנות<br>ניסיון</span>
+    <!-- Before / After -->
+    <section class="ba" id="beforeAfter" hidden>
+      <header class="sec-head">
+        <p class="kicker">לפני ואחרי</p>
+        <h2 class="reveal">השינוי מדבר<br>בעד עצמו</h2>
+      </header>
+      <div class="ba__list" id="baList"></div>
+    </section>
+
+    <!-- Craft -->
+    <section class="craft" id="craft">
+      <div class="craft__inner">
+        <header class="sec-head sec-head--light">
+          <p class="kicker">האומנות</p>
+          <h2 class="reveal">שלושה עקרונות<br>שאין עליהם פשרה</h2>
+        </header>
+        <div class="pillars">
+          <article class="pillar reveal">
+            <span class="numeral">I</span>
+            <h3>דיוק</h3>
+            <p>קווים ישרים במילימטר, פינות חדות ומישורים חלקים לחלוטין. בודקים כל מישור באור צד לפני שהוא יוצא לצבע.</p>
+          </article>
+          <article class="pillar reveal">
+            <span class="numeral">II</span>
+            <h3>חומר</h3>
+            <p>לוחות, פרופילים וחומרי שפכטל איכותיים בתקן ישראלי, והפתרון הנכון לכל חלל: לחדרים רטובים, לבידוד אקוסטי ולעמידות באש.</p>
+          </article>
+          <article class="pillar reveal">
+            <span class="numeral">III</span>
+            <h3>כבוד לבית</h3>
+            <p>מכסים את הבית, עובדים בשקט ובסדר, ומשאירים אחרינו מקום נקי, כאילו לא היינו שם.</p>
+          </article>
         </div>
       </div>
-      <div class="about__text">
-        <p class="eyebrow">למה לבחור בנו</p>
-        <h2>מקצועיות, ניקיון ושקיפות מלאה</h2>
-        <p>אנחנו מתייחסים לכל בית כאילו היה שלנו. אתם מקבלים הצעת מחיר ברורה מראש, לוח זמנים מדויק ועבודה נקייה – ובסוף, גימור חלק שמוכן לצבע.</p>
-        <ul class="checks">
-          <li>הצעת מחיר מפורטת וללא הפתעות</li>
-          <li>חומרים איכותיים בתקן ישראלי</li>
-          <li>שמירה על ניקיון וכיסוי הבית במהלך העבודה</li>
-          <li>אחריות מלאה על העבודה</li>
-          <li>ייעוץ עיצובי ותכנון תאורה ללא עלות</li>
-        </ul>
-        <a href="#contact" class="btn">בואו נדבר</a>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ===== Process ===== -->
-  <section class="section section--dark" id="process">
-    <div class="container">
-      <header class="section__head">
-        <p class="eyebrow">איך זה עובד</p>
-        <h2>ארבעה צעדים לתקרה החדשה שלכם</h2>
+    <!-- Services -->
+    <section class="services" id="services">
+      <header class="sec-head">
+        <p class="kicker">שירותים</p>
+        <h2 class="reveal">מה אנחנו יוצרים</h2>
       </header>
-      <ol class="steps">
-        <li><span>01</span><h3>שיחת ייעוץ</h3><p>מספרים לנו מה אתם צריכים – בטלפון או בוואטסאפ.</p></li>
-        <li><span>02</span><h3>מדידה והצעה</h3><p>מגיעים למדידה ומגישים הצעת מחיר מסודרת.</p></li>
-        <li><span>03</span><h3>ביצוע</h3><p>עבודה מקצועית, נקייה ובלוח הזמנים שסיכמנו.</p></li>
-        <li><span>04</span><h3>מסירה</h3><p>בדיקת איכות משותפת ומסירה עם גימור מושלם.</p></li>
+      <ol class="svc-list">
+        <li class="svc reveal"><span class="svc__no">01</span><h3>תקרות צפות והנמכות</h3><p>תקרות במפלסים ותקרות משופעות, הנמכות להסתרת מיזוג וצנרת, וקווים נקיים מקיר לקיר.</p></li>
+        <li class="svc reveal"><span class="svc__no">02</span><h3>תקרות אקוסטיות</h3><p>תקרות מגשים ופיין ליין לבתי ספר, למשרדים ולעסקים, עם תאורת פאנלים שקועה.</p></li>
+        <li class="svc reveal"><span class="svc__no">03</span><h3>צבעים דקורטיביים וטיח ערבה</h3><p>מרקמים טבעיים בגווני בטון ואבן, וגימורים דקורטיביים שמעניקים לקירות עומק ואופי.</p></li>
+        <li class="svc reveal"><span class="svc__no">04</span><h3>תאורה נסתרת ונישות</h3><p>קרניזים, פסי לד שקועים ומדפי נישה מוארים בהתאמה אישית.</p></li>
+        <li class="svc reveal"><span class="svc__no">05</span><h3>קירות טלוויזיה ומחיצות</h3><p>קירות מעוצבים, חלוקת חללים וחדרים נוספים, עם בידוד אקוסטי ותרמי.</p></li>
+        <li class="svc reveal"><span class="svc__no">06</span><h3>שיפוצים קומפלט</h3><p>חדרי רחצה, שירותים וחללים שלמים, מהפירוק ועד המסירה.</p></li>
       </ol>
-    </div>
-  </section>
+    </section>
 
-  <!-- ===== Contact ===== -->
-  <section class="section" id="contact">
-    <div class="container contact">
-      <div class="contact__info">
-        <p class="eyebrow">צרו קשר</p>
-        <h2>קבלו הצעת מחיר<br>ללא התחייבות</h2>
-        <p>השאירו פרטים ונחזור אליכם בהקדם, או פנו אלינו ישירות:</p>
-        <ul class="contact__list">
-          <li><a id="phoneLink" href="tel:"><span class="ci">📞</span><span data-config="phone">058-5766956</span></a></li>
-          <li><a id="waLink" href="#" target="_blank" rel="noopener"><span class="ci">💬</span>שליחת הודעה בוואטסאפ</a></li>
-          <li id="emailItem" hidden><a id="emailLink" href="mailto:"><span class="ci">✉️</span><span data-config="email"></span></a></li>
-          <li><span class="ci">📍</span>אזור שירות: <span data-config="area">מרכז והשרון</span></li>
-        </ul>
-      </div>
-      <form class="form" id="contactForm" novalidate>
-        <div class="form__row">
-          <label>שם מלא<input type="text" name="name" required autocomplete="name"></label>
-          <label>טלפון<input type="tel" name="phone" required autocomplete="tel" inputmode="tel"></label>
-        </div>
-        <div class="form__row">
-          <label>עיר<input type="text" name="city" autocomplete="address-level2"></label>
-          <label>סוג עבודה
-            <select name="service">
+    <!-- Process -->
+    <section class="process" id="process">
+      <header class="sec-head">
+        <p class="kicker">התהליך</p>
+        <h2 class="reveal">מהשיחה הראשונה<br>ועד המסירה</h2>
+      </header>
+      <ol class="timeline">
+        <li class="reveal"><span>01</span><h3>שיחה</h3><p>שומעים מה אתם מדמיינים.</p></li>
+        <li class="reveal"><span>02</span><h3>ביקור ומדידה</h3><p>מגיעים אליכם, מודדים ומייעצים.</p></li>
+        <li class="reveal"><span>03</span><h3>הצעה מפורטת</h3><p>מחיר ולוח זמנים ברורים מראש.</p></li>
+        <li class="reveal"><span>04</span><h3>ביצוע</h3><p>עבודה נקייה בזמן שסוכם.</p></li>
+        <li class="reveal"><span>05</span><h3>מסירה</h3><p>בדיקה משותפת בכל פרט.</p></li>
+      </ol>
+    </section>
+
+    <!-- Contact -->
+    <section class="contact" id="contact">
+      <div class="contact__media" aria-hidden="true"></div>
+      <div class="contact__panel">
+        <p class="kicker">יצירת קשר</p>
+        <h2 class="reveal">נתחיל לתכנן<br><em>את החלל שלכם</em></h2>
+        <form class="form" id="contactForm" novalidate>
+          <div class="field"><input id="f-name" name="name" placeholder=" " required autocomplete="name"><label for="f-name">שם מלא</label></div>
+          <div class="field"><input id="f-phone" name="phone" type="tel" inputmode="tel" placeholder=" " required autocomplete="tel"><label for="f-phone">טלפון</label></div>
+          <div class="field"><input id="f-city" name="city" placeholder=" " autocomplete="address-level2"><label for="f-city">עיר</label></div>
+          <div class="field field--select">
+            <select id="f-service" name="service">
               <option>תקרה / הנמכה</option>
               <option>תאורה נסתרת</option>
               <option>קיר טלוויזיה / נישות</option>
-              <option>מחיצה / קיר</option>
+              <option>מחיצה / חלוקת חלל</option>
               <option>תיקונים</option>
               <option>אחר</option>
             </select>
-          </label>
+            <label for="f-service" class="is-static">סוג העבודה</label>
+          </div>
+          <div class="field field--full"><textarea id="f-msg" name="message" rows="3" placeholder=" "></textarea><label for="f-msg">ספרו לנו על הפרויקט</label></div>
+          <button type="submit" class="btn-lux">שליחת פנייה<span aria-hidden="true">←</span></button>
+          <p class="form__note" id="formNote">הפנייה תישלח אלינו בוואטסאפ, ונחזור אליכם באותו היום.</p>
+        </form>
+        <div class="contact__direct">
+          <a class="js-phone" href="tel:"><small>טלפון</small><span data-config="phone"></span></a>
+          <a class="js-wa" href="#" target="_blank" rel="noopener"><small>וואטסאפ</small><span>שליחת הודעה</span></a>
+          <a class="js-mail" href="mailto:"><small>דוא״ל</small><span data-config="email"></span></a>
         </div>
-        <label>פרטים על העבודה<textarea name="message" rows="4" placeholder="גודל החדר, מה תרצו לעשות, מועד רצוי..."></textarea></label>
-        <button type="submit" class="btn btn--block">שליחה בוואטסאפ</button>
-        <p class="form__note" id="formNote">הפרטים יישלחו ישירות אלינו בוואטסאפ.</p>
-      </form>
-    </div>
-  </section>
+      </div>
+    </section>
+  </main>
 
-  <!-- ===== Footer ===== -->
   <footer class="footer">
-    <div class="container footer__inner">
-      <p>© <span id="year"></span> <span data-config="businessName">עבודות גבס</span>. כל הזכויות שמורות.</p>
-      <div class="footer__social" id="social"></div>
+    <img class="footer__logo" src="images/logo.jpg" alt="Michael Hajaj – עבודות גבס וצבעים דקורטיביים" loading="lazy">
+    <div class="footer__row">
+      <span data-config="area">אשדוד והסביבה</span>
+      <span class="footer__social" id="social"></span>
+      <span>© <span id="year"></span> <span data-config="businessName"></span></span>
     </div>
   </footer>
 
-  <!-- Floating WhatsApp -->
-  <a class="wa-float" id="waFloat" href="#" target="_blank" rel="noopener" aria-label="וואטסאפ">
-    <svg viewBox="0 0 32 32"><path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6c-2 0-4-.6-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2l-1 1.2c-.2.2-.4.2-.7.1a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.5c.2.2 2.4 3.6 5.8 5 2.2.9 3 1 4.1.8.7-.1 1.9-.8 2.2-1.5.3-.7.3-1.4.2-1.5l-.6-.3z"/></svg>
+  <a class="wa-float js-wa" href="#" target="_blank" rel="noopener" aria-label="שליחת הודעה בוואטסאפ">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6c-2 0-4-.6-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2l-1 1.2c-.2.2-.4.2-.7.1a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.5c.2.2 2.4 3.6 5.8 5 2.2.9 3 1 4.1.8.7-.1 1.9-.8 2.2-1.5.3-.7.3-1.4.2-1.5l-.6-.3z"/></svg>
   </a>
 
-  <!-- Lightbox -->
   <div class="lightbox" id="lightbox" hidden>
-    <button class="lightbox__close" id="lbClose" aria-label="סגירה">×</button>
-    <button class="lightbox__nav lightbox__prev" id="lbPrev" aria-label="הקודם">›</button>
-    <figure>
-      <img id="lbImg" alt="">
-      <figcaption id="lbCap"></figcaption>
-    </figure>
-    <button class="lightbox__nav lightbox__next" id="lbNext" aria-label="הבא">‹</button>
+    <button class="lb-btn lb-close" id="lbClose" aria-label="סגירה"><i></i><i></i></button>
+    <button class="lb-btn lb-prev" id="lbPrev" aria-label="הקודם">→</button>
+    <figure><img id="lbImg" alt=""><figcaption><span id="lbCount"></span><strong id="lbCap"></strong></figcaption></figure>
+    <button class="lb-btn lb-next" id="lbNext" aria-label="הבא">←</button>
   </div>
 
   <script src="js/config.js"></script>
