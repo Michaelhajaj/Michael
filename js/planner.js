@@ -30,7 +30,7 @@
     let drop = clamp(num("drop", 15), 5, 120) / 100;
     return {
       L, W, H, drop, style,
-      room: radio("room"), light: radio("light"), temp: radio("temp"),
+      room: radio("room"), light: style === "fineline" ? "panels" : radio("light"), temp: radio("temp"),
       count: Math.round(clamp(num("count", 0), 0, 80)),
       led: form.elements.led.checked || style === "cove",
       notes: form.elements.notes.value.trim()
@@ -555,21 +555,105 @@
     rows.forEach(([v, l]) => { const d = document.createElement("div"); d.innerHTML = `<strong></strong><span></span>`; d.querySelector("strong").textContent = v; d.querySelector("span").textContent = l; el.appendChild(d); });
   }
 
-  /* ---------- AI visualization (optional, needs aiEndpoint) ---------- */
-  async function aiRender(s) {
-    const res = await fetch(C.aiEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: photoData, params: { style: s.style, room: s.room, light: s.light, temp: s.temp, count: s.count, led: s.led, drop: Math.round(s.drop * 100), height: Math.round(s.H * 100) } })
+  /* ---------- Paid AI visualization (Grow + Cloudflare Worker) ---------- */
+  const API = (C.aiEndpoint || "").replace(/\/+$/, "");
+  const PRICE = C.aiPrice || 5;
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+    clear: k => { try { localStorage.setItem(k, ""); } catch (e) {} },
+  };
+  const params = s => ({ style: s.style, room: s.room, light: s.light, temp: s.temp, count: s.count, led: s.led, drop: Math.round(s.drop * 100), height: Math.round(s.H * 100) });
+  function saveForm() {
+    const data = {};
+    [...form.elements].forEach(el => {
+      if (!el.name) return;
+      if (el.type === "radio") { if (el.checked) data[el.name] = el.value; }
+      else if (el.type === "checkbox") data[el.name] = el.checked;
+      else if (el.type !== "file") data[el.name] = el.value;
     });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok || !j.image) throw new Error(j.error || "AI error");
-    return j.image;
+    return data;
+  }
+  function loadForm(data) {
+    Object.entries(data || {}).forEach(([k, v]) => {
+      form.querySelectorAll(`[name="${k}"]`).forEach(el => {
+        if (el.type === "radio") el.checked = el.value === v;
+        else if (el.type === "checkbox") el.checked = !!v;
+        else el.value = v;
+      });
+    });
+    countTouched = true;
+  }
+  function setPhoto(data) {
+    photoData = data; preview.src = data; preview.hidden = false; box.classList.add("has-photo"); clearBtn.hidden = false;
+  }
+  function showAiImage(img) {
+    const viz = $("#viz"), compare = $("#compare");
+    viz.innerHTML = ""; const im = new Image(); im.src = img; im.alt = "הדמיית AI של התקרה"; viz.appendChild(im);
+    $("#vizBadge").textContent = "הדמיית AI על התמונה שלכם";
+    compare.hidden = false; compare.innerHTML = "";
+    if (photoData) {
+      compare.innerHTML = `<figure><img alt="לפני"><figcaption>לפני – התמונה שלכם</figcaption></figure>`;
+      compare.querySelector("img").src = photoData;
+    }
+    const fig = document.createElement("figure"); fig.appendChild(render3D(lastState));
+    const fc = document.createElement("figcaption"); fc.textContent = "הדמיה סכמטית לפי המידות"; fig.appendChild(fc);
+    compare.appendChild(fig);
+    const dl = document.createElement("a"); dl.className = "pl-btn pl-ai__dl"; dl.href = img; dl.download = "ceiling-ai-michael-hajaj.png"; dl.textContent = "הורדת ההדמיה";
+    viz.after(dl);
+    $("#aiCard").hidden = true;
+  }
+  const aiMsg = (t, err) => { const m = $("#aiMsg"); m.textContent = t; m.classList.toggle("is-error", !!err); };
+
+  async function startCheckout() {
+    if (!photoData) { aiMsg("כדי ליצור הדמיה על התמונה, העלו קודם תמונה של החדר (שלב 01).", true); return; }
+    const name = $("#aiName").value.trim(), phone = $("#aiPhone").value.replace(/\D/g, "");
+    if (name.length < 2) { aiMsg("נא למלא שם מלא.", true); $("#aiName").focus(); return; }
+    if (!/^0\d{8,9}$/.test(phone)) { aiMsg("נא למלא מספר טלפון תקין.", true); $("#aiPhone").focus(); return; }
+    const btn = $("#aiPay"); btn.disabled = true; aiMsg("מעבירים לעמוד התשלום המאובטח…");
+    try {
+      const r = await fetch(API + "/checkout", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: photoData, params: params(lastState || readState()), name, phone })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.url || !j.id) throw new Error(j.error || "checkout");
+      store.set("pl_job", j.id);
+      store.set("pl_form", JSON.stringify(saveForm()));
+      store.set("pl_photo", photoData);
+      window.location.href = j.url;
+    } catch (e) {
+      btn.disabled = false;
+      aiMsg("לא הצלחנו לפתוח את עמוד התשלום. נסו שוב בעוד רגע, או שלחו לנו הודעה בוואטסאפ.", true);
+    }
+  }
+
+  async function pollResult(id) {
+    const viz = $("#viz");
+    const loading = t => { viz.innerHTML = `<div class="pl-viz__loading"><i></i><span></span></div>`; viz.querySelector("span").textContent = t; };
+    loading("ממתינים לאישור התשלום…");
+    $("#result").scrollIntoView({ behavior: "smooth" });
+    const started = Date.now();
+    while (Date.now() - started < 4 * 60 * 1000) {
+      let j = {};
+      try { const r = await fetch(API + "/result?job=" + encodeURIComponent(id)); j = await r.json(); } catch (e) {}
+      if (j.state === "done" && j.image) { showAiImage(j.image); store.clear("pl_job"); store.clear("pl_photo"); return; }
+      if (j.state === "failed") break;
+      if (j.state === "missing") {
+        viz.innerHTML = ""; viz.appendChild(render3D(lastState)); $("#aiCard").hidden = false;
+        aiMsg("לא מצאנו את ההזמנה. אם חויבתם, שלחו לנו הודעה ונטפל בזה.", true); return;
+      }
+      loading(j.state === "generating" ? "התשלום התקבל. מייצרים את ההדמיה על התמונה שלכם… (עד דקה)" : "ממתינים לאישור התשלום…");
+      await new Promise(res => setTimeout(res, 4000));
+    }
+    viz.innerHTML = ""; viz.appendChild(render3D(lastState));
+    $("#aiCard").hidden = false;
+    aiMsg("משהו השתבש ביצירת ההדמיה. שלחו לנו הודעה בוואטסאפ ונטפל בזה, כולל החזר התשלום אם צריך.", true);
   }
 
   /* ---------- Generate ---------- */
   let lastPlan = null, lastState = null;
-  form.addEventListener("submit", async e => {
+  form.addEventListener("submit", e => {
     e.preventDefault();
     const s = readState();
     lastState = s;
@@ -579,35 +663,15 @@
     const plan = renderPlan(s);
     $("#plan").innerHTML = ""; $("#plan").appendChild(plan); lastPlan = plan;
     compare.hidden = true; compare.innerHTML = "";
-    viz.innerHTML = "";
-    const schematic = () => { viz.innerHTML = ""; viz.appendChild(render3D(s)); badge.textContent = "הדמיה סכמטית לפי המידות"; };
-
-    if (C.aiEndpoint && photoData) {
-      viz.innerHTML = `<div class="pl-viz__loading"><i></i><span>מייצרים הדמיה על התמונה שלכם… זה לוקח עד דקה</span></div>`;
-      const btn = form.querySelector(".pl-submit"); btn.disabled = true;
-      result.scrollIntoView({ behavior: "smooth" });
-      try {
-        const img = await aiRender(s);
-        viz.innerHTML = ""; const im = new Image(); im.src = img; im.alt = "הדמיית AI של התקרה"; viz.appendChild(im);
-        badge.textContent = "הדמיית AI על התמונה שלכם";
-        compare.hidden = false;
-        compare.innerHTML = `<figure><img alt="לפני"><figcaption>לפני – התמונה שלכם</figcaption></figure><figure></figure>`;
-        compare.querySelector("img").src = photoData;
-        compare.lastElementChild.appendChild(render3D(s));
-        const fc = document.createElement("figcaption"); fc.textContent = "הדמיה סכמטית לפי המידות"; compare.lastElementChild.appendChild(fc);
-      } catch (err) {
-        schematic();
-        badge.textContent = "הדמיה סכמטית (הדמיית ה־AI לא זמינה כרגע)";
-      } finally { btn.disabled = false; }
-    } else {
-      schematic();
-      if (photoData) {
-        compare.hidden = false;
-        compare.innerHTML = `<figure><img alt="התמונה שלכם"><figcaption>התמונה שלכם – נצרף אותה לפנייה</figcaption></figure>`;
-        compare.querySelector("img").src = photoData;
-      }
-      result.scrollIntoView({ behavior: "smooth" });
+    $$(".pl-ai__dl").forEach(n => n.parentNode.removeChild(n));
+    viz.innerHTML = ""; viz.appendChild(render3D(s)); badge.textContent = "הדמיה סכמטית לפי המידות";
+    if (photoData && !API) {
+      compare.hidden = false;
+      compare.innerHTML = `<figure><img alt="התמונה שלכם"><figcaption>התמונה שלכם – צרפו אותה לפנייה</figcaption></figure>`;
+      compare.querySelector("img").src = photoData;
     }
+    if (API) { $("#aiCard").hidden = false; $("#aiNoPhoto").hidden = !!photoData; }
+    if (!e.detail || !e.detail.silent) result.scrollIntoView({ behavior: "smooth" });
 
     // WhatsApp summary
     const msg = [
@@ -623,6 +687,27 @@
   });
 
   $("#again").addEventListener("click", () => form.scrollIntoView({ behavior: "smooth" }));
+
+  /* ---------- AI card wiring & return from payment ---------- */
+  $$(".js-price").forEach(n => n.textContent = PRICE);
+  $("#aiPay").addEventListener("click", startCheckout);
+  $("#aiToPhoto").addEventListener("click", () => box.scrollIntoView({ behavior: "smooth", block: "center" }));
+  const qs = new URLSearchParams(location.search);
+  const jobId = qs.get("job");
+  if (API && jobId && /^[\w-]{10,64}$/.test(jobId)) {
+    try { loadForm(JSON.parse(store.get("pl_form") || "{}")); } catch (e) {}
+    const ph = store.get("pl_photo"); if (ph) setPhoto(ph);
+    refreshHints();
+    form.dispatchEvent(new CustomEvent("submit", { cancelable: true, detail: { silent: true } }));
+    history.replaceState(null, "", location.pathname);
+    if (qs.get("cancel")) {
+      aiMsg("התשלום בוטל. אפשר לנסות שוב מתי שתרצו.", true);
+      $("#result").scrollIntoView({ behavior: "smooth" });
+    } else {
+      $("#aiCard").hidden = true;
+      pollResult(jobId);
+    }
+  }
 
   /* ---------- Download / print ---------- */
   $("#dlPlan").addEventListener("click", () => {

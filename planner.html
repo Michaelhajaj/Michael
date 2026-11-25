@@ -144,6 +144,22 @@
         </div>
         <div class="pl-viz" id="viz"></div>
         <div class="pl-compare" id="compare" hidden></div>
+        <div class="pl-ai" id="aiCard" hidden>
+          <div class="pl-ai__text">
+            <p class="kicker">הדמיית AI</p>
+            <h4>רוצים לראות את התקרה<br>על התמונה של החדר שלכם?</h4>
+            <p>הבינה המלאכותית תצייר את התקרה שבחרתם, עם התאורה, ישירות על התמונה שצילמתם.</p>
+            <p class="pl-ai__fee">עקב עלויות הפעלת שירות ההדמיה, הלקוח משתתף בהוצאה בסך <strong><span class="js-price">5</span> ₪</strong> להדמיה.</p>
+          </div>
+          <div class="pl-ai__form">
+            <p class="pl-ai__nophoto" id="aiNoPhoto">כדי ליצור הדמיה צריך תמונה של החדר. <button type="button" class="pl-link" id="aiToPhoto">להעלאת תמונה</button></p>
+            <label class="pl-ai__field">שם מלא<input id="aiName" autocomplete="name"></label>
+            <label class="pl-ai__field">טלפון<input id="aiPhone" type="tel" inputmode="tel" autocomplete="tel"></label>
+            <button type="button" class="btn-lux" id="aiPay">לתשלום ויצירת ההדמיה · <span class="js-price">5</span> ₪<span aria-hidden="true">←</span></button>
+            <p class="pl-ai__msg" id="aiMsg" role="status"></p>
+            <small>התשלום מאובטח דרך Grow (אשראי / ביט). ההדמיה תופיע כאן מיד אחרי התשלום.</small>
+          </div>
+        </div>
         <p class="pl-note">ההדמיה נועדה להמחשה בלבד. גוונים, חומרים ופרטים סופיים נקבעים בפגישת הייעוץ.</p>
       </div>
 

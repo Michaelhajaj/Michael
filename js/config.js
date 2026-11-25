@@ -16,6 +16,7 @@ const SITE_CONFIG = {
   projectsDone: 50,                  // ← יוצג כ"מעל 50 פרויקטים"
   instagram: "",                     // ← קישור לאינסטגרם (לא חובה)
   facebook: "",                      // ← קישור לפייסבוק (לא חובה)
+  aiPrice: 5,                        // ← מחיר הדמיית AI בשקלים (צריך להתאים גם ל-PRICE בשרת)
   aiEndpoint: ""                     // ← כתובת שרת ה-AI להדמיה על תמונה (ראו ai-worker/README.md)
 };
 
