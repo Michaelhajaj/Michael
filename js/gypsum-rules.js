@@ -152,10 +152,15 @@
         overrides: [
           { path: "ceiling.hangerFromWall", value: 250, kind: "max", section: "קנאוף – מפרט טכני F47 (112-F47)",
             label: "מתלה ראשון עד 25 ס״מ מהקיר", si: "ת״י 1924: עד 40 ס״מ", verified: false,
-            url: "https://assets.knauf.com/content/dam/local/il/gy/0185/products/ceilings/cleaneo/fire-classification/112-F47.pdf" }
+            url: "https://assets.knauf.com/content/dam/local/il/gy/0185/products/ceilings/cleaneo/fire-classification/112-F47.pdf" },
+          { path: "partition.screwMid", value: 250, kind: "max", section: "טמבור – בניית קיר גבס",
+            label: "ברגי לוחות כל כ-25 ס״מ – גם באמצע הלוח", si: "ת״י 1924 סעיף 3.4.2 ה: כ-25 ס״מ בשולי הלוח, כ-30 ס״מ באמצע", verified: true,
+            url: "https://tambour.co.il/private/inspiration/best-tips-home-renovation/%D7%A2%D7%A9%D7%95-%D7%96%D7%90%D7%AA-%D7%91%D7%A2%D7%A6%D7%9E%D7%9B%D7%9D-%D7%91%D7%A0%D7%99%D7%99%D7%AA-%D7%A7%D7%99%D7%A8-%D7%92%D7%91%D7%A1/" }
         ],
         clauses: [
           { topic: "ceiling", section: "קנאוף – מפרט F47", text: "פרופיל ראשי ומשני: עד 10 ס״מ מהקיר. פרופילים ומסילות מפלדה מגולוונת 0.6 מ״מ, מוטות תלייה 4 מ״מ או מתלים מחוררים.", si: "ת״י 1924 מתיר מוט 3.5 מ״מ לפחות / מוט הברגה 6 מ״מ", conflict: false, stricter: true, verified: false },
+          { topic: "partition", section: "טמבור – בניית קיר גבס", text: "פס איטום מעכב בעירה בכל מקום שבו שלד הפח נפגש עם השלד הנושא: רצפה, תקרה וקירות. מחיצות נבנות רק על הרצפה המוגמרת.", si: "תואם ת״י 1924 סעיפים 3.3.1.2 א ו-3.2.2", conflict: false, verified: true },
+          { topic: "partition", section: "טמבור – בניית קיר גבס", text: "עיגון מסילות כל 60 ס״מ לכל היותר (30 ס״מ ברטוב), ניצבים כל 60 ס״מ (40 ברטוב), ניצב נמוך ב-1 ס״מ מהתקרה, מרווח 1 ס״מ בין הלוח לרצפה.", si: "תואם ת״י 1924 סעיפים 3.3.1.1–3.4.2", conflict: false, verified: true },
           { topic: "partition", section: "אורבונד – לוחות ופתרונות למחיצות", text: "בחדר רטוב: חגורת הגבהה מבטון על הרצפה הקונסטרוקטיבית, לפחות 10 מ״מ מעל הריצוף המתוכנן.", si: "ת״י 1924 סעיף 3.2.2 מחייב חגורת הגבהה בחדר רטוב", conflict: false, verified: false }
         ]
       },

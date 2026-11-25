@@ -317,7 +317,7 @@
     bill.add("hanger", "מתלה (נוניוס / מוט הברגה 6 מ״מ / לוחית תלייה)", "יח׳", hangers.length);
     bill.add("ceilAnchor", R.screws.ceilAnchor, "יח׳", hangers.length);
     bill.add("anchor", R.screws.anchor, "יח׳", ceil(perim / C.perimeterFix) + 4, "לפרופיל ההיקפי");
-    bill.add("seal", "פס איטום והפרדה (קופריבנד)", "מ׳", perim / 1000 * 1.05, "בכל מפגש שלד עם קיר / תקרה");
+    bill.add("seal", "פס איטום והפרדה מעכב בעירה (קופריבנד)", "מ׳", perim / 1000 * 1.05, "בכל מפגש שלד עם קיר / תקרה");
     for (let l = 1; l <= o.layers; l++) bill.add(screwKey(l, o.thickness), R.screws[screwKey(l, o.thickness)], "יח׳", screwsPerLayer * 1.1);
     bill.add("metal", R.screws.metal, "יח׳", trimmed.length * 12 + (pSec.joins + pPri.joins) * 4);
     addFinish(bill, area, boards.filter(b => b.layer === o.layers), o.finish, o.wet);
@@ -486,7 +486,7 @@
     bill.add("track-" + trackW, (R.profiles[trackW]?.name || "מסילה") + " – 3 מ׳", "יח׳", trackPack.count);
     const fixS = strict ? P.trackFixWet : P.trackFix;
     bill.add("anchor", R.screws.anchor, "יח׳", (ceil(bottom / fixS) + 1) + (ceil(L / fixS) + 1) + 2 * (ceil(Hh / P.endStudFix) + 1));
-    bill.add("seal", "פס איטום והפרדה (קופריבנד)", "מ׳", (2 * L + 2 * Hh) / 1000 * 1.05, "בכל מפגש שלד עם קיר / רצפה / תקרה");
+    bill.add("seal", "פס איטום והפרדה מעכב בעירה (קופריבנד)", "מ׳", (2 * L + 2 * Hh) / 1000 * 1.05, "בכל מפגש שלד עם קיר / רצפה / תקרה");
     notes.push("פס איטום והפרדה (קופריבנד) לכל אורך המפגש של המסילות והניצבים הקיצוניים עם רצפה, תקרה וקירות – בכל חדר, לא רק ברטוב (ת״י 1924 סעיף 3.3.1.2 א).");
     bill.add("metal", R.screws.metal, "יח׳", studs.length * 4 + openings.length * 8);
     // ברגי לוחות: שולי לוח 250, אמצע 300
@@ -508,6 +508,7 @@
     addFinish(bill, area * o.sides, faces, o.finish, o.wet);
     bill.add("corner", "פינת מגן קשיחה (לפינות חוץ ופתחים)", "מ׳", openings.reduce((s, op) => s + (2 * op.h + op.w) * o.sides, 0) / 1000);
     if (o.insulation && !o.lining) bill.add("wool", `צמר סלעים / זכוכית ${prof.width >= 70 ? 50 : 40} מ״מ`, "מ״ר", area * 1.05);
+    if (!o.lining) notes.push("צנרת וחשמל בתוך המחיצה: מעבירים רק דרך החורים שבניצבים (או קדח נוסף), צנרת מים בתוך שרוול פלסטיק. אסור לחתוך את דפנות הניצב ואסור לחזק צנרת ללוח הגבס (ת״י 1924 סעיף 3.7).");
     if (o.wet && !o.lining) {
       const curbLen = (L - openings.filter(op => op.kind === "door").reduce((s, op) => s + op.w, 0)) / 1000;
       warnings.push("מחיצה בחדר רטוב: לפני הגבס בונים שורת בלוקים יצוקים בבטון (חגורת הגבהה) ברוחב המחיצה, ועליה המחיצה – ת״י 1924 סעיף 3.2.2. גובה החגורה מעל הריצוף הגמור לפי המתכנן (אורבונד: לפחות 1 ס״מ מעל הריצוף; במפרטי מכרז רבים 10–15 ס״מ).");
