@@ -81,7 +81,7 @@ What to extract:
 Report only what you can see. If something is unclear, lower its confidence or leave it out and say so in notes rather than guessing.`;
 
 function cors(origin, env) {
-  const allowed = (env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+  const allowed = (env.ALLOWED_ORIGINS || "https://michaelhajaj.github.io").split(",").map(s => s.trim()).filter(Boolean);
   const ok = !allowed.length || allowed.includes(origin) || /^http:\/\/localhost(:\d+)?$/.test(origin || "");
   return {
     ok,
