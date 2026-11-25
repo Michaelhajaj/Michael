@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500&family=Assistant:wght@200;300;400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611260200">
-  <link rel="stylesheet" href="css/planner.css?v=202611260200">
-  <link rel="stylesheet" href="css/plans.css?v=202611260200">
+  <link rel="stylesheet" href="css/style.css?v=202611260300">
+  <link rel="stylesheet" href="css/planner.css?v=202611260300">
+  <link rel="stylesheet" href="css/plans.css?v=202611260300">
   <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head>
 <body class="gp-page">
@@ -51,6 +51,7 @@
       <div class="gp-tabs" id="planTabs" role="tablist"></div>
 
       <div class="gp-start" id="startBox">
+        <label class="gp-ruleset gp-ruleset--start"><span>לפי מה לתכנן?</span><select class="js-ruleset"><option value="si1924">ת״י 1924 (התקן)</option><option value="bluebook">הספר הכחול (המפרט הכללי)</option><option value="strict">המחמיר מביניהם</option></select><small>אפשר לשנות בכל שלב. בסתירה בין המקורות מופיעה הערה.</small></label>
         <label class="gp-drop" id="dropZone">
           <input type="file" id="planFile" accept="application/pdf,image/*">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
@@ -90,6 +91,7 @@
           <label><input type="checkbox" id="lyBoards"> לוחות</label>
           <label><input type="checkbox" id="lyHangers" checked> מתלים</label>
           <label><input type="checkbox" id="lyPlan" checked> תוכנית ברקע</label>
+          <label class="gp-ruleset">כללים: <select class="js-ruleset"><option value="si1924">ת״י 1924 (התקן)</option><option value="bluebook">הספר הכחול (המפרט הכללי)</option><option value="strict">המחמיר מביניהם</option></select></label>
           <span class="gp-scale" id="scaleInfo"></span>
         </div>
         <div class="gp-aibar" id="aiBar" hidden></div>
@@ -176,10 +178,10 @@
   </a>
 
   <script src="vendor/pdfjs/pdf.min.js"></script>
-  <script src="js/config.js?v=202611260200"></script>
-  <script src="js/gypsum-rules.js?v=202611260200"></script>
-  <script src="js/gypsum-engine.js?v=202611260200"></script>
-  <script src="js/plans.js?v=202611260200"></script>
-  <script type="module" src="js/plans3d.js?v=202611260200"></script>
+  <script src="js/config.js?v=202611260300"></script>
+  <script src="js/gypsum-rules.js?v=202611260300"></script>
+  <script src="js/gypsum-engine.js?v=202611260300"></script>
+  <script src="js/plans.js?v=202611260300"></script>
+  <script type="module" src="js/plans3d.js?v=202611260300"></script>
 </body>
 </html>

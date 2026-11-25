@@ -15,7 +15,7 @@
   /* ---------------- State ---------------- */
   const S = {
     plans: [], cur: 0, tool: "select", sel: null, pending: null,
-    unlocked: false, order: "", results: {}, prices: {}
+    unlocked: false, order: "", results: {}, prices: {}, ruleset: "si1924"
   };
   const plan = () => S.plans[S.cur];
 
@@ -35,7 +35,7 @@
 
   /* ---------------- Persistence ---------------- */
   function save() {
-    const data = { plans: S.plans.map(p => ({ ...p, view: null })), cur: S.cur, order: S.order, unlocked: S.unlocked, prices: S.prices };
+    const data = { plans: S.plans.map(p => ({ ...p, view: null })), cur: S.cur, order: S.order, unlocked: S.unlocked, prices: S.prices, ruleset: S.ruleset };
     try { localStorage.setItem(STORE, JSON.stringify(data)); }
     catch (e) { try { localStorage.setItem(STORE, JSON.stringify({ ...data, plans: data.plans.map(p => ({ ...p, img: null })) })); } catch (_) {} }
   }
@@ -43,7 +43,7 @@
     try {
       const d = JSON.parse(localStorage.getItem(STORE) || "null");
       if (d && Array.isArray(d.plans) && d.plans.length) {
-        S.plans = d.plans; S.cur = Math.min(d.cur || 0, d.plans.length - 1); S.order = d.order || ""; S.unlocked = !!d.unlocked; S.prices = d.prices || {};
+        S.plans = d.plans; S.cur = Math.min(d.cur || 0, d.plans.length - 1); S.order = d.order || ""; S.unlocked = !!d.unlocked; S.prices = d.prices || {}; S.ruleset = d.ruleset || "si1924";
       }
     } catch (_) {}
     if (!S.order) S.order = "GP-" + Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -526,10 +526,10 @@
     try {
       if (it.type === "ceiling") {
         S.results[it.id] = E.ceiling({ w: Math.round(it.w * 1000), h: Math.round(it.h * 1000),
-          fixtures: it.fixtures.map(f => ({ ...f, x: f.x * 1000, y: f.y * 1000, w: f.rot ? f.h : f.w, h: f.rot ? f.w : f.h })), opts: it.opts });
+          fixtures: it.fixtures.map(f => ({ ...f, x: f.x * 1000, y: f.y * 1000, w: f.rot ? f.h : f.w, h: f.rot ? f.w : f.h })), opts: { ...it.opts, ruleset: S.ruleset } });
       } else {
         const g = wallGeom(it);
-        S.results[it.id] = E.wall({ L: Math.round(g.len * 1000), elements: it.elements.map(e => ({ ...e, pos: e.pos * 1000 })), opts: it.opts });
+        S.results[it.id] = E.wall({ L: Math.round(g.len * 1000), elements: it.elements.map(e => ({ ...e, pos: e.pos * 1000 })), opts: { ...it.opts, ruleset: S.ruleset } });
       }
     } catch (e) { console.error(e); delete S.results[it.id]; }
   }
@@ -658,7 +658,7 @@
   function altTable(it) {
     if (it.type === "ceiling") {
       const alts = [["x", "משניים לאורך הרוחב"], ["y", "משניים לאורך האורך"]].map(([dir, name]) => {
-        const r = E.ceiling({ w: it.w * 1000, h: it.h * 1000, fixtures: it.fixtures.map(f => ({ ...f, x: f.x * 1000, y: f.y * 1000, w: f.rot ? f.h : f.w, h: f.rot ? f.w : f.h })), opts: { ...it.opts, dir } });
+        const r = E.ceiling({ w: it.w * 1000, h: it.h * 1000, fixtures: it.fixtures.map(f => ({ ...f, x: f.x * 1000, y: f.y * 1000, w: f.rot ? f.h : f.w, h: f.rot ? f.w : f.h })), opts: { ...it.opts, dir, ruleset: S.ruleset } });
         const bad = r.fixtures.filter(f => f.status === "clash" || f.status === "joint").length;
         const prof = r.bill.find(b => b.key.startsWith("prof-"))?.qty || 0;
         return { dir, name, r, bad, prof };
@@ -669,7 +669,7 @@
     const g = wallGeom(it);
     const profs = it.opts.lining ? ["F47", "C60", "C50"] : ["C50", "C70", "C100"];
     const rows = profs.flatMap(pr => [1, 2].map(layers => {
-      const r = E.wall({ L: g.len * 1000, elements: it.elements.map(e => ({ ...e, pos: e.pos * 1000 })), opts: { ...it.opts, profile: pr, layers } });
+      const r = E.wall({ L: g.len * 1000, elements: it.elements.map(e => ({ ...e, pos: e.pos * 1000 })), opts: { ...it.opts, profile: pr, layers, ruleset: S.ruleset } });
       const mh = it.opts.lining ? null : E.maxHeightFor(layers, R.profiles[pr].width, it.opts.thickness, r.S);
       return { pr, layers, r, ok: !mh || it.opts.height <= mh, mh };
     }));
@@ -776,7 +776,12 @@
     // warnings
     const warns = items.flatMap(x => x.res.warnings.map(w => `<p><b>${esc(x.p.name)} · ${esc(itemName(x.it))}:</b> ${esc(w)}</p>`));
     const notes = [...new Set(items.flatMap(x => x.res.notes.filter(n => !n.startsWith("עומס"))))].map(n => `<p class="info">${esc(n)}</p>`);
-    $("#warnBox").innerHTML = (warns.length ? warns.join("") : `<p class="ok">✓ לא נמצאו התנגשויות. כל האביזרים והקופסאות נמצאים בין הפרופילים, והחלוקה עומדת בכללי התקן.</p>`) + notes.join("");
+    const RS = R.rulesets[S.ruleset] || R.rulesets.si1924, BB = R.rulesets.bluebook;
+    const seenR = new Set();
+    const rnotes = items.flatMap(x => x.res.ruleNotes || []).filter(n => !seenR.has(n.text) && seenR.add(n.text)).map(n =>
+      `<p class="rule ${n.conflict ? "conflict" : ""}"><b>${esc(n.source)}${n.section ? ` (סעיף ${esc(n.section)})` : ""}:</b> ${esc(n.text)}${n.conflict ? ` <b>⚠ סותר את התקן</b>` : ""}<small>${n.si ? (n.conflict ? "בתקן: " : "") + esc(n.si) : ""}${n.verified ? "" : " · ממתין לאימות מול הפרק הרשמי"}</small></p>`).join("");
+    const rhead = S.ruleset === "si1924" ? "" : `<p class="rule"><b>מתכננים לפי: ${esc(RS.name)}.</b> ${S.ruleset === "strict" ? "בכל ערך נבחר המחמיר מבין התקן והספר הכחול." : "ערכים שהספר הכחול לא קובע נלקחים מת״י 1924."}${BB.complete ? "" : `<small>${esc(BB.statusNote)}</small>`}</p>`;
+    $("#warnBox").innerHTML = rhead + rnotes + (warns.length ? warns.join("") : `<p class="ok">✓ לא נמצאו התנגשויות. כל האביזרים והקופסאות נמצאים בין הפרופילים, והחלוקה עומדת בכללי התקן.</p>`) + notes.join("");
     // per item
     $("#itemResults").innerHTML = items.map((x, i) => {
       const svg = x.it.type === "ceiling" ? svgCeiling(x.it, x.res) : svgWall(x.it, x.res);
@@ -944,6 +949,10 @@
   }
 
   initBrand(); initSelects(); load();
+  $$(".js-ruleset").forEach(sel => {
+    sel.value = S.ruleset;
+    sel.onchange = () => { S.ruleset = sel.value; $$(".js-ruleset").forEach(o => o.value = S.ruleset); computeAll(); changed(); };
+  });
   if (new URLSearchParams(location.search).has("demo") && !S.plans.length) {
     const p = newPlan("דירה לדוגמה"); p.roomH = 2.7; S.plans.push(p);
     p.items.push({ id: uid(), type: "ceiling", x: 0, y: 0, w: 5.2, h: 4, opts: { ...defaultsCeiling(), name: "סלון" }, fixtures: [

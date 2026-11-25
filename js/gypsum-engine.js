@@ -6,6 +6,30 @@
   const R = (typeof module !== "undefined" && module.exports) ? require("./gypsum-rules.js") : root.GYPSUM_RULES;
 
   const r1 = n => Math.round(n);
+
+  /* ---------- מערכת כללים פעילה ---------- */
+  const BASE = R;
+  const rsCache = {};
+  function rulesFor(id) {
+    if (!id || id === "si1924" || !BASE.rulesets) return BASE;
+    if (rsCache[id]) return rsCache[id];
+    const out = JSON.parse(JSON.stringify(BASE));
+    (BASE.rulesets.bluebook.overrides || []).forEach(ov => {
+      const keys = ov.path.split("."), last = keys.pop();
+      const obj = keys.reduce((o, k) => o[k], out);
+      const cur = obj[last];
+      obj[last] = id === "bluebook" ? ov.value : (ov.kind === "min" ? Math.max(cur, ov.value) : Math.min(cur, ov.value));
+    });
+    return (rsCache[id] = out);
+  }
+  function ruleNotes(id, topics) {
+    if (!id || id === "si1924" || !BASE.rulesets) return [];
+    const bb = BASE.rulesets.bluebook;
+    const cl = bb.clauses.filter(c => topics.includes(c.topic)).map(c => ({ ...c, source: bb.short }));
+    const ov = (bb.overrides || []).filter(o => topics.includes(o.path.split(".")[0] === "ceiling" ? "ceiling" : o.path.split(".")[0] === "lining" ? "lining" : "partition"))
+      .map(o => ({ topic: o.path, section: o.section, text: o.label, si: o.si, conflict: true, verified: o.verified !== false, source: bb.short }));
+    return [...cl, ...ov];
+  }
   const ceil = Math.ceil;
   const uniq = arr => [...new Set(arr.map(v => Math.round(v)))].sort((a, b) => a - b);
 
@@ -114,6 +138,7 @@
       profile: "F47", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true }, input.opts || {});
     if (o.wet && o.boardType === "regular") o.boardType = "water";
     if (o.wet && o.boardType === "fire") o.boardType = "firewater";
+    const R = rulesFor(o.ruleset);
     const warnings = [], notes = [];
     // מערכת מקומית: משניים = קווים אנכיים (מפוזרים לאורך X, באורך H). ברירת מחדל: משניים לאורך הצלע הקצרה
     let W = input.w, H = input.h, swap = false;
@@ -284,6 +309,7 @@
     if (o.insulation) bill.add("wool", "צמר סלעים / זכוכית 50 מ״מ", "מ״ר", area * 1.05);
 
     return {
+      ruleNotes: ruleNotes(o.ruleset, ["ceiling", "board", "general"]),
       kind: "ceiling", W, H, swap, sec: S, stdSec, pri: P, hangerSpacing: hs, loadN,
       secondaries, primaries, hangers, boards, fixtures, trims, rows: ys, opts: o, area,
       warnings, notes, bill: bill.list(),
@@ -310,6 +336,7 @@
     const o = Object.assign({ height: 2700, profile: "C70", layers: 1, sides: 2, thickness: 12.5, boardType: "regular",
       wet: false, tiles: false, insulation: true, boardLen: 3000, spacing: 0, finish: "basic", lining: false }, input.opts || {});
     if (o.lining) o.sides = 1;
+    const R = rulesFor(o.ruleset);
     if (o.wet && o.boardType === "regular") o.boardType = "water";
     if (o.wet && o.boardType === "fire") o.boardType = "firewater";
     const L = r1(input.L), Hh = r1(o.height);
@@ -475,6 +502,7 @@
     if (o.lining) bill.add("bracket", "זוויתן / מתלה ישיר לקיר", "יח׳", studs.length * (ceil(Hh / R.lining.bracketSpacing) + 1));
 
     return {
+      ruleNotes: ruleNotes(o.ruleset, [o.lining ? "lining" : "partition", "board", "general"]),
       kind: o.lining ? "lining" : "wall", L, H: Hh, S, stdS, studs, openings, boxes, boards, jointSets, offset: off,
       opts: o, area, studLen, stock, warnings, notes, bill: bill.list(),
       stats: { area, studs: studs.length, boards: pack.boards, waste: pack.used ? Math.max(0, 1 - pack.area / pack.used) : 0 }
@@ -489,7 +517,7 @@
     return total;
   }
 
-  const API = { ceiling, wall, mergeBills, pricing, layLines, pack1D, packBoards, maxHeightFor };
+  const API = { rulesFor, ruleNotes, ceiling, wall, mergeBills, pricing, layLines, pack1D, packBoards, maxHeightFor };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else root.GypsumEngine = API;
 })(this);
