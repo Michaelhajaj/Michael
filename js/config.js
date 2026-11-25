@@ -19,7 +19,9 @@ const SITE_CONFIG = {
   aiPrice: 5,                        // ← מחיר הדמיית AI בשקלים (צריך להתאים גם ל-PRICE בשרת)
   aiEndpoint: "",                    // ← כתובת שרת ה-AI להדמיה על תמונה (ראו ai-worker/README.md)
 
-  /* ---------- מתכנן הגבס החכם (plans.html) – תשלום ---------- */
+  /* ---------- מתכנן הגבס החכם (plans.html) ---------- */
+  planAiEndpoint: "",                // ← כתובת שרת הזיהוי האוטומטי (ראו plan-worker/README.md), למשל "https://plan-worker.xxx.workers.dev"
+
   payments: {
     prices: [35, 30, 25],            // ← תוכנית ראשונה, שנייה, ומהשלישית והלאה
     maxPlans: 10,

@@ -49,6 +49,14 @@
 .gp-help { position: absolute; top: 10px; right: 10px; left: 10px; pointer-events: none; font-size: 13px; color: var(--ink); background: rgba(244,240,232,.9); padding: 6px 10px; border: 1px solid var(--hair); width: fit-content; max-width: calc(100% - 20px); }
 .gp-help:empty { display: none; }
 
+.gp-toolbar .gp-ai-btn { background: linear-gradient(135deg, #c9a55c, #e2c88f); color: var(--forest); border-color: var(--brass); font-weight: 600; }
+.gp-toolbar .gp-ai-btn:disabled { opacity: .7; cursor: progress; }
+.gp-aibar { border: 1px solid var(--brass); border-top: 0; background: #f7efdc; padding: 12px 14px; font-size: 14.5px; display: grid; gap: 6px; }
+.gp-aibar b { font-weight: 600; }
+.gp-aibar ul { margin: 0; padding-inline-start: 18px; color: var(--stone); font-size: 13.5px; }
+.gp-aibar .gp-aibar__row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.gp-aibar.is-error { background: #f6dccf; border-color: #c97a5c; }
+
 /* Properties */
 .gp-props { border-inline-start: 1px solid var(--hair); padding: 18px; overflow-y: auto; max-height: 760px; background: var(--ivory); font-size: 14px; }
 .gp-props h4 { font: 400 20px var(--serif); margin: 0 0 4px; }

@@ -158,6 +158,7 @@
       const st = fr[f.id]?.status || "ok";
       const [p, q] = toScreen(it.x + f.x, it.y + f.y);
       ctx.fillStyle = COLORS[st] || COLORS.ok; ctx.strokeStyle = S.sel?.fix === f.id ? COLORS.sel : "#fff"; ctx.lineWidth = 2;
+      ctx.setLineDash(f.ai === "low" ? [3, 2] : []); if (f.ai === "low" && S.sel?.fix !== f.id) ctx.strokeStyle = "#7a5a12";
       if (spec.d && !f.w) {
         const r = Math.max(5, (f.d || spec.d) / 2000 * v.z);
         ctx.beginPath(); ctx.arc(p, q, r, 0, 7); ctx.fill(); ctx.stroke();
@@ -166,6 +167,7 @@
         const ww = f.rot ? h : w, hh = f.rot ? w : h;
         ctx.fillRect(p - ww / 2, q - hh / 2, ww, hh); ctx.strokeRect(p - ww / 2, q - hh / 2, ww, hh);
       }
+      ctx.setLineDash([]);
     });
     label(it.x + it.w / 2, it.y + 0.05, (it.opts.name || "תקרה") + ` · ${fmt(it.w, 2)}×${fmt(it.h, 2)}`, "top");
   }
@@ -356,12 +358,7 @@
       const ans = prompt("מה האורך האמיתי של הקו שסימנתם? (במטרים, למשל 4.20)", "");
       const real = parseFloat(String(ans || "").replace(",", "."));
       if (real > 0 && len > 0) {
-        const factor = real / len;
-        p.mpp *= factor; p.calibrated = true;
-        p.items.forEach(it => {
-          if (it.type === "ceiling") { it.x *= factor; it.y *= factor; it.w = round2(it.w * factor); it.h = round2(it.h * factor); it.fixtures.forEach(f => { f.x *= factor; f.y *= factor; }); }
-          else { ["a", "b"].forEach(k => { it[k].x *= factor; it[k].y *= factor; }); it.elements.forEach(e => e.pos *= factor); }
-        });
+        rescalePlan(p, real / len);
         computeAll(); fit(); changed();
       }
       setTool("select"); return;
@@ -370,6 +367,111 @@
     const it = { id: uid(), type: "wall", a: { x: a[0], y: a[1] }, b: { x: b[0], y: b[1] }, opts: defaultsWall(pd.tool === "lining"), elements: [] };
     plan().items.push(it); S.sel = { item: it.id }; computeItem(it); changed();
   }
+  function rescalePlan(p, factor) {
+    p.mpp *= factor; p.calibrated = true;
+    p.items.forEach(it => {
+      if (it.type === "ceiling") { it.x *= factor; it.y *= factor; it.w = round2(it.w * factor); it.h = round2(it.h * factor); it.fixtures.forEach(f => { f.x *= factor; f.y *= factor; }); }
+      else { ["a", "b"].forEach(k => { it[k].x *= factor; it[k].y *= factor; }); it.elements.forEach(e => e.pos *= factor); }
+    });
+  }
+
+  /* ---------------- AI plan detection ---------------- */
+  const AI_ERRORS = {
+    daily_limit: "הגעתם למכסת הזיהויים היומית. אפשר להמשיך לסמן ידנית, או לנסות שוב מחר.",
+    busy: "השרת עמוס כרגע. נסו שוב בעוד דקה.",
+    refusal: "לא הצלחנו לנתח את התמונה הזו. נסו עמוד אחר של התוכנית.",
+    too_long: "התוכנית מורכבת מדי לזיהוי בבת אחת. נסו לחתוך לאזור קטן יותר.",
+    image_too_large: "התמונה גדולה מדי.",
+    not_configured: "הזיהוי האוטומטי עוד לא הופעל בשרת.",
+    origin: "השרת לא מאשר בקשות מהכתובת הזו."
+  };
+  function aiBar(html, error) {
+    const b = $("#aiBar"); b.hidden = !html; b.innerHTML = html || ""; b.classList.toggle("is-error", !!error);
+  }
+  async function aiDetect() {
+    const p = plan();
+    if (!p.img) { flashHelp("הזיהוי האוטומטי עובד על תוכנית שהועלתה (PDF או תמונה)."); return; }
+    if (!CFG.planAiEndpoint) { aiBar("הזיהוי האוטומטי עוד לא הופעל באתר. בינתיים אפשר לסמן ידנית.", true); return; }
+    const btn = $("#aiBtn"); btn.disabled = true; btn.textContent = "🤖 מנתח את התוכנית…";
+    aiBar("Claude קורא את התוכנית: מקרא, מידות, תקרות, מחיצות, ספוטים ושקעים. זה לוקח בדרך כלל 30–90 שניות.");
+    try {
+      const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = p.img; });
+      const k = Math.min(1, 2400 / Math.max(im.width, im.height));
+      const c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height); cx.drawImage(im, 0, 0, c.width, c.height);
+      const r = await fetch(CFG.planAiEndpoint.replace(/\/$/, "") + "/analyze", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: c.toDataURL("image/jpeg", 0.85), width: c.width, height: c.height })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.result) { aiBar(AI_ERRORS[data.error] || "הזיהוי נכשל. נסו שוב, או סמנו ידנית.", true); return; }
+      applyAi(p, data.result);
+    } catch (e) {
+      aiBar("אין חיבור לשרת הזיהוי. בדקו את החיבור ונסו שוב.", true);
+    } finally { btn.disabled = false; btn.textContent = "🤖 זיהוי אוטומטי"; }
+  }
+  function applyAi(p, r) {
+    const snapshot = JSON.stringify({ items: p.items, mpp: p.mpp, calibrated: p.calibrated, roomH: p.roomH });
+    const toPx = (x, y) => [x / 1000 * p.imgW, y / 1000 * p.imgH];
+    let scaleMsg = "";
+    if (r.scale?.found && r.scale.meters > 0 && !p.calibrated) {
+      const [a, b] = toPx(r.scale.x1, r.scale.y1), [c, d] = toPx(r.scale.x2, r.scale.y2);
+      const dpx = Math.hypot(c - a, d - b);
+      if (dpx > 20) { rescalePlan(p, (r.scale.meters / dpx) / p.mpp); scaleMsg = `קנה מידה לפי המידה "${esc(r.scale.label)}" (${fmt(r.scale.meters, 2)} מ׳). כדאי לוודא עם 📏.`; }
+    }
+    if (!scaleMsg) scaleMsg = p.calibrated ? "קנה המידה הקיים נשמר." : "⚠ לא נמצאה מידה קריאה. כיילו קנה מידה ידנית (📏) לפני שמזמינים חומר.";
+    const toW = (x, y) => { const [px, py] = toPx(x, y); return [px * p.mpp, py * p.mpp]; };
+    const added = { ceilings: 0, walls: 0, fixtures: 0, elements: 0, skipped: 0 };
+    (r.ceilings || []).forEach(cg => {
+      const [x0, y0] = toW(Math.min(cg.x0, cg.x1), Math.min(cg.y0, cg.y1)), [x1, y1] = toW(Math.max(cg.x0, cg.x1), Math.max(cg.y0, cg.y1));
+      if (x1 - x0 < 0.4 || y1 - y0 < 0.4) return;
+      const opts = { ...defaultsCeiling(), name: cg.name || "", wet: !!cg.wet };
+      if (cg.drop_cm > 0) opts.dropCm = Math.round(cg.drop_cm);
+      if (cg.height_cm > 0 && !(cg.drop_cm > 0)) { const d = Math.round(p.roomH * 100 - cg.height_cm); if (d >= 5 && d <= 120) opts.dropCm = d; }
+      p.items.push({ id: uid(), type: "ceiling", x: round2(x0), y: round2(y0), w: round2(x1 - x0), h: round2(y1 - y0), opts, fixtures: [], ai: true });
+      added.ceilings++;
+    });
+    (r.partitions || []).forEach(pt => {
+      const a = toW(pt.x1, pt.y1), b = toW(pt.x2, pt.y2);
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.3) return;
+      const opts = defaultsWall(!!pt.lining);
+      if (pt.height_cm > 0) opts.height = Math.round(pt.height_cm * 10);
+      p.items.push({ id: uid(), type: "wall", a: { x: a[0], y: a[1] }, b: { x: b[0], y: b[1] }, opts, elements: [], ai: true });
+      added.walls++;
+    });
+    (r.fixtures || []).forEach(fx => {
+      const [x, y] = toW(fx.x, fx.y);
+      const it = p.items.filter(i => i.type === "ceiling").find(i => x >= i.x - 0.05 && x <= i.x + i.w + 0.05 && y >= i.y - 0.05 && y <= i.y + i.h + 0.05);
+      if (!it) { added.skipped++; return; }
+      const spec = R.fixtures[fx.kind] || R.fixtures.custom;
+      const f = { id: uid(), kind: R.fixtures[fx.kind] ? fx.kind : "custom", x: round2(clamp(x - it.x, 0, it.w)), y: round2(clamp(y - it.y, 0, it.h)), kg: spec.kg, ai: fx.confidence };
+      if (spec.d) f.d = spec.d; else { f.w = fx.length_mm > 0 ? Math.round(fx.length_mm) : spec.w; f.h = spec.h; }
+      it.fixtures.push(f); added.fixtures++;
+    });
+    const walls = p.items.filter(i => i.type === "wall");
+    (r.wall_elements || []).forEach(el => {
+      const w = toW(el.x, el.y); let best = null, bd = 0.6;
+      walls.forEach(it => {
+        const g = wallGeom(it), t = (w[0] - it.a.x) * g.ux + (w[1] - it.a.y) * g.uy, d = Math.abs((w[0] - it.a.x) * g.nx + (w[1] - it.a.y) * g.ny);
+        if (t >= 0 && t <= g.len && d < bd) { bd = d; best = { it, t }; }
+      });
+      if (!best) { added.skipped++; return; }
+      const spec = R.wallElements[el.kind] || R.wallElements.box;
+      best.it.elements.push({ id: uid(), kind: el.kind, pos: round2(best.t), w: el.width_mm > 0 && (el.kind === "door" || el.kind === "window") ? Math.round(el.width_mm) : spec.w, h: spec.h, y: spec.y, ai: true });
+      added.elements++;
+    });
+    S.sel = null; setTool("select"); computeAll(); fit(); changed();
+    const notes = (r.notes || []).slice(0, 6).map(n => `<li>${esc(n)}</li>`).join("");
+    aiBar(`<div class="gp-aibar__row"><b>🤖 זוהו:</b> ${added.ceilings} תקרות · ${added.walls} מחיצות/חיפויים · ${added.fixtures} אביזרי תקרה · ${added.elements} פתחים ונקודות חשמל${added.skipped ? ` · ${added.skipped} לא שובצו` : ""}
+      <button type="button" class="gp-del" id="aiUndo">ביטול הזיהוי</button><button type="button" class="gp-del" id="aiClose">סגירה</button></div>
+      ${r.summary ? `<div>${esc(r.summary)}</div>` : ""}<div>${scaleMsg}</div>
+      <div>חשוב לעבור על התוצאה: אפשר לגרור אביזרים, למחוק ולהוסיף. פריטים עם מסגרת מקווקוות זוהו בביטחון נמוך.</div>${notes ? `<ul>${notes}</ul>` : ""}`);
+    $("#aiUndo").onclick = () => { const s0 = JSON.parse(snapshot); p.items = s0.items; p.mpp = s0.mpp; p.calibrated = s0.calibrated; p.roomH = s0.roomH; S.sel = null; computeAll(); fit(); changed(); aiBar(""); };
+    $("#aiClose").onclick = () => aiBar("");
+    updateScaleInfo();
+  }
+  $("#aiBtn").onclick = aiDetect;
+
   function addFixture(w) {
     const p = plan();
     const it = [...p.items].reverse().find(it => it.type === "ceiling" && w[0] >= it.x && w[0] <= it.x + it.w && w[1] >= it.y && w[1] <= it.y + it.h);

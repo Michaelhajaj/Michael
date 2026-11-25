@@ -1,0 +1,15 @@
+name = "plan-worker"
+main = "src/worker.js"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# כתובות האתר שמורשות לקרוא לשרת (מופרדות בפסיק)
+ALLOWED_ORIGINS = "https://michaelhajaj.github.io"
+# כמה זיהויים מותר לכל כתובת IP ביום (דורש KV בשם LIMITS)
+DAILY_LIMIT = "8"
+
+# להגבלת שימוש: צרו KV namespace והדביקו כאן את ה-id שלו
+# [[kv_namespaces]]
+# binding = "LIMITS"
+# id = "PUT_KV_ID_HERE"

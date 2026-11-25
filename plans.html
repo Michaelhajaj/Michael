@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500&family=Assistant:wght@200;300;400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202611260100">
-  <link rel="stylesheet" href="css/planner.css?v=202611260100">
-  <link rel="stylesheet" href="css/plans.css?v=202611260100">
+  <link rel="stylesheet" href="css/style.css?v=202611260200">
+  <link rel="stylesheet" href="css/planner.css?v=202611260200">
+  <link rel="stylesheet" href="css/plans.css?v=202611260200">
   <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 </head>
 <body class="gp-page">
@@ -63,6 +63,8 @@
 
       <div class="gp-editor" id="editor" hidden>
         <div class="gp-toolbar" id="toolbar">
+          <button id="aiBtn" class="gp-ai-btn" title="Claude מזהה תקרות, מחיצות, ספוטים, שקעים וקנה מידה מתוך התוכנית">🤖 זיהוי אוטומטי</button>
+          <span class="gp-sep"></span>
           <button data-tool="select" class="is-on" title="בחירה והזזה (גרירה על רקע = הזזת התצוגה)">✥ בחירה</button>
           <button data-tool="calibrate" title="סמנו שתי נקודות עם מידה ידועה">📏 קנה מידה</button>
           <button data-tool="ceiling" title="גררו מלבן על אזור התקרה">▭ תקרה</button>
@@ -90,6 +92,7 @@
           <label><input type="checkbox" id="lyPlan" checked> תוכנית ברקע</label>
           <span class="gp-scale" id="scaleInfo"></span>
         </div>
+        <div class="gp-aibar" id="aiBar" hidden></div>
         <div class="gp-work">
           <div class="gp-canvas-wrap" id="canvasWrap">
             <canvas id="cv"></canvas>
@@ -173,10 +176,10 @@
   </a>
 
   <script src="vendor/pdfjs/pdf.min.js"></script>
-  <script src="js/config.js?v=202611260100"></script>
-  <script src="js/gypsum-rules.js?v=202611260100"></script>
-  <script src="js/gypsum-engine.js?v=202611260100"></script>
-  <script src="js/plans.js?v=202611260100"></script>
-  <script type="module" src="js/plans3d.js?v=202611260100"></script>
+  <script src="js/config.js?v=202611260200"></script>
+  <script src="js/gypsum-rules.js?v=202611260200"></script>
+  <script src="js/gypsum-engine.js?v=202611260200"></script>
+  <script src="js/plans.js?v=202611260200"></script>
+  <script type="module" src="js/plans3d.js?v=202611260200"></script>
 </body>
 </html>
