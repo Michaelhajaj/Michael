@@ -377,6 +377,23 @@ body:not(.is-loading) .hero .kicker, body:not(.is-loading) .hero .link-arrow { o
 .wa-float:hover { transform: translateY(-4px); background: #25d366; border-color: #25d366; }
 .wa-float:hover svg { fill: #fff; }
 
+/* ---------- Planner quick button ---------- */
+.ico-ceil { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; flex-shrink: 0; }
+.ico-ceil circle { fill: currentColor; stroke: none; }
+.hero__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 22px 40px; }
+.hero__plan { gap: 14px; }
+.plan-float {
+  position: fixed; left: 24px; bottom: 92px; z-index: 50; height: 56px; padding: 0 22px 0 18px;
+  display: inline-flex; align-items: center; gap: 10px; border-radius: 28px;
+  background: var(--brass); color: var(--forest); font: 600 14px var(--sans); letter-spacing: .08em;
+  box-shadow: 0 10px 30px rgba(0,0,0,.28); transition: transform .4s var(--ease), background .3s, opacity .4s;
+  animation: planPulse 2.8s var(--ease) 3s 2;
+}
+.plan-float:hover { transform: translateY(-4px); background: var(--brass-light); }
+body:not(.past-hero) .plan-float { opacity: 0; transform: translateY(16px); pointer-events: none; }
+body.is-loading .plan-float, body.menu-open .plan-float, body.lb-open .plan-float { opacity: 0; pointer-events: none; }
+@keyframes planPulse { 0%, 100% { box-shadow: 0 10px 30px rgba(0,0,0,.28), 0 0 0 0 rgba(201,165,92,.55); } 50% { box-shadow: 0 10px 30px rgba(0,0,0,.28), 0 0 0 14px rgba(201,165,92,0); } }
+
 /* ---------- Lightbox ---------- */
 .lightbox { position: fixed; inset: 0; z-index: 150; background: rgba(10,20,16,.97); display: grid; place-items: center; padding: 70px 90px; }
 .lightbox[hidden] { display: none; }
@@ -454,4 +471,7 @@ body:not(.is-loading) .hero .kicker, body:not(.is-loading) .hero .link-arrow { o
   .lb-next { left: calc(50% + 10px); }
   .footer__row { justify-content: center; text-align: center; }
   .wa-float { left: 16px; bottom: 16px; }
+  .plan-float { left: 16px; bottom: 82px; height: 52px; padding: 0 18px 0 14px; font-size: 13px; }
+  .hero__ctas { gap: 22px; }
+  .hero__plan { width: 100%; justify-content: center; }
 }

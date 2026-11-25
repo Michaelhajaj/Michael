@@ -39,7 +39,10 @@
 
   /* ---------- Header ---------- */
   const header = $(".header");
-  const onScroll = () => header.classList.toggle("is-scrolled", window.scrollY > 60);
+  const onScroll = () => {
+    header.classList.toggle("is-scrolled", window.scrollY > 60);
+    document.body.classList.toggle("past-hero", window.scrollY > window.innerHeight * 0.6);
+  };
   onScroll();
   window.addEventListener("scroll", onScroll, { passive: true });
 
