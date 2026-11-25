@@ -12,6 +12,7 @@ const SITE_CONFIG = {
   heroImage: "images/works/arava-laser-ashdod-1.jpg",
   contactImage: "images/works/fine-line-ashdod.jpg",   // ← תמונת הפתיחה הגדולה
   yearsExperience: 4,
+  projectsDone: 50,                  // ← יוצג כ"מעל 50 פרויקטים"
   instagram: "",                     // ← קישור לאינסטגרם (לא חובה)
   facebook: ""                       // ← קישור לפייסבוק (לא חובה)
 };

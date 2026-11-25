@@ -175,6 +175,7 @@ body:not(.is-loading) .hero .kicker, body:not(.is-loading) .hero .link-arrow { o
   color: var(--stone); font-size: 14px; letter-spacing: .2em;
 }
 .statement__sign strong { font: 300 22px var(--latin); color: var(--ink); letter-spacing: 0; }
+.statement__sign .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--brass); }
 .rule { width: 60px; height: 1px; background: var(--hair); }
 
 /* ---------- Featured ---------- */
