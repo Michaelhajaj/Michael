@@ -3,6 +3,7 @@
    ========================================================== */
 const SITE_CONFIG = {
   businessName: "Michael Hajaj",
+  ownerName: "מיכאל חגאג",
   brand: "MICHAEL HAJAJ",             // ← השם בכותרת
   brandSub: "עבודות גבס וצבעים דקורטיביים",
   phone: "058-5766956",
