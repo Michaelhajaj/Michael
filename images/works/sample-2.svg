@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="wl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9d6d0"/><stop offset="1" stop-color="#bdb8b0"/></linearGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b5148"/><stop offset="1" stop-color="#3c342d"/></linearGradient>
+<radialGradient id="glow" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#ffe2a8" stop-opacity=".9"/><stop offset="1" stop-color="#ffe2a8" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="900" fill="url(#wl)"/>
+<polygon points="0,0 1200,0 983.9999999999999,198.0 216.0,198.0" fill="#ecebe7"/>
+<polygon points="0,900 1200,900 983.9999999999999,666.0 216.0,666.0" fill="url(#fl)"/>
+<polygon points="0,0 216.0,198.0 216.0,666.0 0,900" fill="#000" opacity=".12"/>
+<polygon points="1200,0 983.9999999999999,198.0 983.9999999999999,666.0 1200,900" fill="#000" opacity=".06"/>
+<rect x="360.0" y="198.0" width="480.0" height="468.0" fill="#000" opacity=".08"/>
+<rect x="456.0" y="342.0" width="288.0" height="135.0" rx="3" fill="#11161d"/>
+<rect x="384.0" y="288.0" width="48.0" height="270.0" fill="#000" opacity=".25"/>
+<rect x="384.0" y="288.0" width="48.0" height="4" fill="#ffe2a8"/>
+<rect x="768.0" y="288.0" width="48.0" height="270.0" fill="#000" opacity=".25"/>
+<rect x="768.0" y="288.0" width="48.0" height="4" fill="#ffe2a8"/>
+<rect x="360.0" y="198.0" width="480.0" height="108.0" fill="url(#glow)" opacity=".5"/>
+<circle cx="360.0" cy="148.5" r="5" fill="#ffe2a8"/>
+<circle cx="516.0" cy="148.5" r="5" fill="#ffe2a8"/>
+<circle cx="672.0000000000001" cy="148.5" r="5" fill="#ffe2a8"/>
+<circle cx="827.9999999999999" cy="148.5" r="5" fill="#ffe2a8"/>
+</svg>

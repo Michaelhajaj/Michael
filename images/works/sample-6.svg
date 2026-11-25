@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="wl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3d0ca"/><stop offset="1" stop-color="#b5b0a8"/></linearGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f776d"/><stop offset="1" stop-color="#57514a"/></linearGradient>
+<radialGradient id="glow" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#ffe9b8" stop-opacity=".9"/><stop offset="1" stop-color="#ffe9b8" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="900" fill="url(#wl)"/>
+<polygon points="0,0 1200,0 983.9999999999999,198.0 216.0,198.0" fill="#e8e6e2"/>
+<polygon points="0,900 1200,900 983.9999999999999,666.0 216.0,666.0" fill="url(#fl)"/>
+<polygon points="0,0 216.0,198.0 216.0,666.0 0,900" fill="#000" opacity=".12"/>
+<polygon points="1200,0 983.9999999999999,198.0 983.9999999999999,666.0 1200,900" fill="#000" opacity=".06"/>
+<line x1="216.0" y1="276.0" x2="983.9999999999999" y2="276.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="216.0" y1="354.0" x2="983.9999999999999" y2="354.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="216.0" y1="432.0" x2="983.9999999999999" y2="432.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="216.0" y1="510.0" x2="983.9999999999999" y2="510.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="216.0" y1="588.0" x2="983.9999999999999" y2="588.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="312.0" y1="198.0" x2="312.0" y2="666.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="408.0" y1="198.0" x2="408.0" y2="666.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="504.0" y1="198.0" x2="504.0" y2="666.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="600.0" y1="198.0" x2="600.0" y2="666.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="696.0" y1="198.0" x2="696.0" y2="666.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="792.0" y1="198.0" x2="792.0" y2="666.0" stroke="#fff" stroke-opacity=".18"/>
+<line x1="888.0" y1="198.0" x2="888.0" y2="666.0" stroke="#fff" stroke-opacity=".18"/>
+<circle cx="360.0" cy="148.5" r="5" fill="#ffe9b8"/>
+<circle cx="516.0" cy="148.5" r="5" fill="#ffe9b8"/>
+<circle cx="672.0000000000001" cy="148.5" r="5" fill="#ffe9b8"/>
+<circle cx="827.9999999999999" cy="148.5" r="5" fill="#ffe9b8"/>
+</svg>
