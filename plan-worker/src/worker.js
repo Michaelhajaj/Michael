@@ -13,10 +13,11 @@ const num = { type: "number" };
 const PLAN_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["plan_type", "summary", "scale", "ceilings", "partitions", "fixtures", "wall_elements", "notes"],
+  required: ["plan_type", "summary", "spot_cutout_mm", "scale", "ceilings", "partitions", "fixtures", "wall_elements", "notes"],
   properties: {
     plan_type: { type: "string", enum: ["ceiling", "electrical", "floor", "mixed", "other"] },
     summary: { type: "string" },
+    spot_cutout_mm: num,
     scale: {
       type: "object", additionalProperties: false,
       required: ["found", "x1", "y1", "x2", "y2", "meters", "label"],
@@ -74,6 +75,7 @@ What to extract:
 - fixtures: ceiling items - recessed spots, round downlights, speakers, sprinklers, smoke detectors, linear light profiles (length_mm = their length), AC supply/return grilles (vent), access panels (panel). Use the legend on the sheet when there is one. One entry per symbol - count carefully.
 - wall_elements: doors (width_mm from the plan, e.g. 80/90 cm), windows, and on electrical plans power outlets (box), switches (switch), and data/TV/phone points (data) - placed at the point on the wall.
 - notes: short Hebrew notes about anything uncertain (unclear symbols, missing scale, parts of the sheet that are cut off).
+- spot_cutout_mm: the largest recessed-spot cut-out diameter in mm if the legend or a note states it (e.g. "ספוט קוטר 8 ס\"מ" = 80), else 0.
 - summary: one or two Hebrew sentences describing the sheet.
 
 Report only what you can see. If something is unclear, lower its confidence or leave it out and say so in notes rather than guessing.`;

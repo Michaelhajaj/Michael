@@ -15,7 +15,7 @@
   /* ---------------- State ---------------- */
   const S = {
     plans: [], cur: 0, tool: "select", sel: null, pending: null,
-    unlocked: false, order: "", results: {}, prices: {}, ruleset: "si1924"
+    unlocked: false, order: "", results: {}, prices: {}, ruleset: "si1924", spotD: 0
   };
   const plan = () => S.plans[S.cur];
 
@@ -35,7 +35,7 @@
 
   /* ---------------- Persistence ---------------- */
   function save() {
-    const data = { plans: S.plans.map(p => ({ ...p, view: null })), cur: S.cur, order: S.order, unlocked: S.unlocked, prices: S.prices, ruleset: S.ruleset };
+    const data = { plans: S.plans.map(p => ({ ...p, view: null })), cur: S.cur, order: S.order, unlocked: S.unlocked, prices: S.prices, ruleset: S.ruleset, spotD: S.spotD };
     try { localStorage.setItem(STORE, JSON.stringify(data)); }
     catch (e) { try { localStorage.setItem(STORE, JSON.stringify({ ...data, plans: data.plans.map(p => ({ ...p, img: null })) })); } catch (_) {} }
   }
@@ -43,7 +43,7 @@
     try {
       const d = JSON.parse(localStorage.getItem(STORE) || "null");
       if (d && Array.isArray(d.plans) && d.plans.length) {
-        S.plans = d.plans; S.cur = Math.min(d.cur || 0, d.plans.length - 1); S.order = d.order || ""; S.unlocked = !!d.unlocked; S.prices = d.prices || {}; S.ruleset = d.ruleset || "si1924";
+        S.plans = d.plans; S.cur = Math.min(d.cur || 0, d.plans.length - 1); S.order = d.order || ""; S.unlocked = !!d.unlocked; S.prices = d.prices || {}; S.ruleset = d.ruleset || "si1924"; S.spotD = d.spotD || 0;
       }
     } catch (_) {}
     if (!S.order) S.order = "GP-" + Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -460,6 +460,13 @@
       best.it.elements.push({ id: uid(), kind: el.kind, pos: round2(best.t), w: el.width_mm > 0 && (el.kind === "door" || el.kind === "window") ? Math.round(el.width_mm) : spec.w, h: spec.h, y: spec.y, ai: true });
       added.elements++;
     });
+    // מחיצה שנוגעת בחדר רטוב – מסומנת כרטובה (חגורת הגבהה, ניצבים כל 40)
+    const wetC = p.items.filter(i => i.type === "ceiling" && i.ai && i.opts.wet);
+    p.items.filter(i => i.type === "wall" && i.ai).forEach(wl => {
+      const mx = (wl.a.x + wl.b.x) / 2, my = (wl.a.y + wl.b.y) / 2;
+      if (wetC.some(c => mx >= c.x - 0.15 && mx <= c.x + c.w + 0.15 && my >= c.y - 0.15 && my <= c.y + c.h + 0.15)) wl.opts.wet = true;
+    });
+    if (r.spot_cutout_mm > 0 && !S.spotD) { S.spotD = Math.round(r.spot_cutout_mm); syncSpot(); }
     S.sel = null; setTool("select"); computeAll(); fit(); changed();
     const notes = (r.notes || []).slice(0, 6).map(n => `<li>${esc(n)}</li>`).join("");
     aiBar(`<div class="gp-aibar__row"><b>🤖 זוהו:</b> ${added.ceilings} תקרות · ${added.walls} מחיצות/חיפויים · ${added.fixtures} אביזרי תקרה · ${added.elements} פתחים ונקודות חשמל${added.skipped ? ` · ${added.skipped} לא שובצו` : ""}
@@ -477,8 +484,12 @@
     const it = [...p.items].reverse().find(it => it.type === "ceiling" && w[0] >= it.x && w[0] <= it.x + it.w && w[1] >= it.y && w[1] <= it.y + it.h);
     if (!it) { flashHelp("לחצו בתוך אזור תקרה (סמנו קודם תקרה)."); return; }
     const kind = $("#fixKind").value, spec = R.fixtures[kind];
+    if (spec.askD && !S.spotD) {
+      const ans = prompt("מה קוטר החיתוך של הספוט הגדול ביותר בפרויקט? (מ״מ, מדף היצרן)", "75");
+      const v = parseFloat(ans); if (v > 0) { S.spotD = Math.round(v); syncSpot(); }
+    }
     const f = { id: uid(), kind, x: round2(w[0] - it.x), y: round2(w[1] - it.y), kg: spec.kg };
-    if (spec.d) f.d = spec.d; else { f.w = spec.w; f.h = spec.h; }
+    if (spec.d) f.d = spec.askD && S.spotD ? S.spotD : spec.d; else { f.w = spec.w; f.h = spec.h; }
     it.fixtures.push(f); S.sel = { item: it.id, fix: f.id }; computeItem(it); changed();
   }
   function addElement(w) {
@@ -526,7 +537,7 @@
     try {
       if (it.type === "ceiling") {
         S.results[it.id] = E.ceiling({ w: Math.round(it.w * 1000), h: Math.round(it.h * 1000),
-          fixtures: it.fixtures.map(f => ({ ...f, x: f.x * 1000, y: f.y * 1000, w: f.rot ? f.h : f.w, h: f.rot ? f.w : f.h })), opts: { ...it.opts, ruleset: S.ruleset } });
+          fixtures: it.fixtures.map(f => ({ ...f, x: f.x * 1000, y: f.y * 1000, w: f.rot ? f.h : f.w, h: f.rot ? f.w : f.h })), opts: { ...it.opts, ruleset: S.ruleset, spotD: S.spotD } });
       } else {
         const g = wallGeom(it);
         S.results[it.id] = E.wall({ L: Math.round(g.len * 1000), elements: it.elements.map(e => ({ ...e, pos: e.pos * 1000 })), opts: { ...it.opts, ruleset: S.ruleset } });
@@ -614,7 +625,7 @@
       if (f) {
         const ff = fr[f.id];
         html += `<div class="gp-2">${fieldHtml(["fx", "מרחק מהשמאל (ס״מ)", "num", 1], Math.round(f.x * 100))}${fieldHtml(["fy", "מרחק מלמעלה (ס״מ)", "num", 1], Math.round(f.y * 100))}</div>`;
-        html += f.d ? fieldHtml(["fd", "קוטר חור (מ״מ)", "num", 1], f.d) : `<div class="gp-2">${fieldHtml(["fw", "אורך (מ״מ)", "num", 10], f.w)}${fieldHtml(["fh", "רוחב (מ״מ)", "num", 10], f.h)}</div>${fieldHtml(["frot", "סיבוב 90°", "chk"], f.rot)}`;
+        html += f.d ? fieldHtml(["fd", R.fixtures[f.kind]?.askD && !f.dCustom && S.spotD ? `קוטר חור (מ״מ) – לפי הקוטר הכללי` : "קוטר חור (מ״מ)", "num", 1], R.fixtures[f.kind]?.askD && !f.dCustom && S.spotD ? S.spotD : f.d) : `<div class="gp-2">${fieldHtml(["fw", "אורך (מ״מ)", "num", 10], f.w)}${fieldHtml(["fh", "רוחב (מ״מ)", "num", 10], f.h)}</div>${fieldHtml(["frot", "סיבוב 90°", "chk"], f.rot)}`;
         html += fieldHtml(["fkg", "משקל (ק״ג)", "num", 0.1], f.kg);
         if (ff) html += `<p class="gp-hint">${esc(ff.msg)} · תמיכה: ${esc(ff.support)}</p>`;
         html += `<button class="gp-del" data-del>מחיקת האביזר</button>`;
@@ -639,7 +650,7 @@
         const f = s.fix && it.fixtures?.find(f => f.id === s.fix), e = s.el && it.elements?.find(e => e.id === s.el);
         if (k === "w" || k === "h") it[k] = Math.max(0.3, v);
         else if (k === "fx") f.x = clamp(v / 100, 0, it.w); else if (k === "fy") f.y = clamp(v / 100, 0, it.h);
-        else if (k === "fd") f.d = v; else if (k === "fw") f.w = v; else if (k === "fh") f.h = v; else if (k === "fkg") f.kg = v; else if (k === "frot") f.rot = v;
+        else if (k === "fd") { f.d = v; f.dCustom = true; } else if (k === "fw") f.w = v; else if (k === "fh") f.h = v; else if (k === "fkg") f.kg = v; else if (k === "frot") f.rot = v;
         else if (k === "epos") e.pos = v / 100; else if (k === "ew") e.w = v; else if (k === "eh") e.h = v; else if (k === "ey") e.y = v;
         else it.opts[k] = v;
         computeItem(it); changed();
@@ -658,7 +669,7 @@
   function altTable(it) {
     if (it.type === "ceiling") {
       const alts = [["x", "משניים לאורך הרוחב"], ["y", "משניים לאורך האורך"]].map(([dir, name]) => {
-        const r = E.ceiling({ w: it.w * 1000, h: it.h * 1000, fixtures: it.fixtures.map(f => ({ ...f, x: f.x * 1000, y: f.y * 1000, w: f.rot ? f.h : f.w, h: f.rot ? f.w : f.h })), opts: { ...it.opts, dir, ruleset: S.ruleset } });
+        const r = E.ceiling({ w: it.w * 1000, h: it.h * 1000, fixtures: it.fixtures.map(f => ({ ...f, x: f.x * 1000, y: f.y * 1000, w: f.rot ? f.h : f.w, h: f.rot ? f.w : f.h })), opts: { ...it.opts, dir, ruleset: S.ruleset, spotD: S.spotD } });
         const bad = r.fixtures.filter(f => f.status === "clash" || f.status === "joint").length;
         const prof = r.bill.find(b => b.key.startsWith("prof-"))?.qty || 0;
         return { dir, name, r, bad, prof };
@@ -779,8 +790,8 @@
     const RS = R.rulesets[S.ruleset] || R.rulesets.si1924, BB = R.rulesets.bluebook;
     const seenR = new Set();
     const rnotes = items.flatMap(x => x.res.ruleNotes || []).filter(n => !seenR.has(n.text) && seenR.add(n.text)).map(n =>
-      `<p class="rule ${n.conflict ? "conflict" : ""}"><b>${esc(n.source)}${n.section ? ` (סעיף ${esc(n.section)})` : ""}:</b> ${esc(n.text)}${n.conflict ? ` <b>⚠ סותר את התקן</b>` : ""}<small>${n.si ? (n.conflict ? "בתקן: " : "") + esc(n.si) : ""}${n.verified ? "" : " · ממתין לאימות מול הפרק הרשמי"}</small></p>`).join("");
-    const rhead = S.ruleset === "si1924" ? "" : `<p class="rule"><b>מתכננים לפי: ${esc(RS.name)}.</b> ${S.ruleset === "strict" ? "בכל ערך נבחר המחמיר מבין התקן והספר הכחול." : "ערכים שהספר הכחול לא קובע נלקחים מת״י 1924."}${BB.complete ? "" : `<small>${esc(BB.statusNote)}</small>`}</p>`;
+      `<p class="rule ${n.conflict ? "conflict" : n.stricter ? "stricter" : ""}"><b>${esc(n.source)}${n.section ? ` (סעיף ${esc(n.section)})` : ""}:</b> ${esc(n.text)}${n.conflict ? ` <b>⚠ סותר את התקן</b>` : n.stricter ? ` <b>מחמיר מהתקן</b>` : ""}<small>${n.si ? (n.conflict ? "בתקן: " : "") + esc(n.si) : ""}${n.verified ? "" : " · ממתין לאימות מול הפרק הרשמי"}</small></p>`).join("");
+    const rhead = S.ruleset === "si1924" ? "" : `<p class="rule"><b>מתכננים לפי: ${esc(RS.name)}.</b> ${S.ruleset === "strict" ? "בכל ערך נבחר המחמיר מבין התקן, הספר הכחול ומפרטי היצרן." : "ערכים שהספר הכחול לא קובע נלקחים מת״י 1924."}${BB.complete ? "" : `<small>${esc(BB.statusNote)}</small>`}</p>`;
     $("#warnBox").innerHTML = rhead + rnotes + (warns.length ? warns.join("") : `<p class="ok">✓ לא נמצאו התנגשויות. כל האביזרים והקופסאות נמצאים בין הפרופילים, והחלוקה עומדת בכללי התקן.</p>`) + notes.join("");
     // per item
     $("#itemResults").innerHTML = items.map((x, i) => {
@@ -949,6 +960,11 @@
   }
 
   initBrand(); initSelects(); load();
+  function syncSpot() { $$(".js-spotd").forEach(i => { if (document.activeElement !== i) i.value = S.spotD || ""; }); }
+  $$(".js-spotd").forEach(inp => {
+    inp.value = S.spotD || "";
+    inp.onchange = () => { S.spotD = Math.max(0, Math.round(parseFloat(inp.value) || 0)); syncSpot(); computeAll(); changed(); };
+  });
   $$(".js-ruleset").forEach(sel => {
     sel.value = S.ruleset;
     sel.onchange = () => { S.ruleset = sel.value; $$(".js-ruleset").forEach(o => o.value = S.ruleset); computeAll(); changed(); };

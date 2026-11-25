@@ -100,7 +100,7 @@
 
     /* ---------- אביזרי תקרה (משקל ק״ג, מידות מ״מ) ---------- */
     fixtures: {
-      spot:     { name: "ספוט שקוע",        d: 75,  kg: 0.3, icon: "●" },
+      spot:     { name: "ספוט שקוע",        d: 75,  kg: 0.3, icon: "●", askD: true },
       downlight:{ name: "גוף תאורה עגול",   d: 170, kg: 0.8, icon: "◎" },
       speaker:  { name: "רמקול שקוע",       d: 210, kg: 2.5, icon: "♪" },
       sprinkler:{ name: "ספרינקלר",         d: 60,  kg: 0.2, icon: "✱" },
@@ -146,7 +146,20 @@
           { topic: "general", section: "00", text: "בסתירה בין מסמכי החוזה, המפרט הכללי והתקן – הדרישה המחמירה קובעת (לפי רוב מסמכי המכרז).", si: "", conflict: false, verified: false }
         ]
       },
-      strict: { name: "המחמיר מביניהם (תקן + ספר כחול)", short: "המחמיר" }
+      // מפרטי יצרן – נאספו מתוך קבצי ה-PDF של היצרנים דרך חיפוש; ממתינים לאימות מול הקובץ המלא
+      manufacturer: {
+        name: "מפרטי יצרן (קנאוף / אורבונד / טמבור)", short: "מפרט יצרן",
+        overrides: [
+          { path: "ceiling.hangerFromWall", value: 250, kind: "max", section: "קנאוף – מפרט טכני F47 (112-F47)",
+            label: "מתלה ראשון עד 25 ס״מ מהקיר", si: "ת״י 1924: עד 40 ס״מ", verified: false,
+            url: "https://assets.knauf.com/content/dam/local/il/gy/0185/products/ceilings/cleaneo/fire-classification/112-F47.pdf" }
+        ],
+        clauses: [
+          { topic: "ceiling", section: "קנאוף – מפרט F47", text: "פרופיל ראשי ומשני: עד 10 ס״מ מהקיר. פרופילים ומסילות מפלדה מגולוונת 0.6 מ״מ, מוטות תלייה 4 מ״מ או מתלים מחוררים.", si: "ת״י 1924 מתיר מוט 3.5 מ״מ לפחות / מוט הברגה 6 מ״מ", conflict: false, stricter: true, verified: false },
+          { topic: "partition", section: "אורבונד – לוחות ופתרונות למחיצות", text: "בחדר רטוב: חגורת הגבהה מבטון על הרצפה הקונסטרוקטיבית, לפחות 10 מ״מ מעל הריצוף המתוכנן.", si: "ת״י 1924 סעיף 3.2.2 מחייב חגורת הגבהה בחדר רטוב", conflict: false, verified: false }
+        ]
+      },
+      strict: { name: "המחמיר מכולם (תקן + ספר כחול + יצרן)", short: "המחמיר" }
     },
 
     screws: {

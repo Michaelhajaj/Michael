@@ -37,6 +37,12 @@
 .gp-ruleset--start span { font: 400 20px var(--serif); }
 .gp-ruleset--start select { font-size: 16px; padding: 10px; max-width: 420px; }
 .gp-ruleset--start small { color: var(--stone); font-size: 13px; }
+.gp-spotrow { display: inline-flex; gap: 8px; align-items: center; font: 400 16px var(--sans) !important; }
+.gp-spotrow input { width: 130px; padding: 10px; font: 400 17px var(--sans); border: 1px solid var(--brass); }
+.gp-spotmini { width: 64px; padding: 5px; border: 1px solid var(--brass); font: inherit; }
+.gp-ruleset--start .gp-spotrow + small { margin-bottom: 2px; }
+.gp-start { gap: 12px; }
+.gp-warn p.rule.stricter { border-color: #6c8f4e; background: #e7eedf; }
 .gp-warn p.rule { border-color: #2c6fb0; background: #e6eef7; }
 .gp-warn p.rule.conflict { border-color: #b0573f; background: #f6dccf; }
 .gp-warn p small { display: block; color: var(--stone); font-size: 12.5px; }

@@ -14,21 +14,26 @@
     if (!id || id === "si1924" || !BASE.rulesets) return BASE;
     if (rsCache[id]) return rsCache[id];
     const out = JSON.parse(JSON.stringify(BASE));
-    (BASE.rulesets.bluebook.overrides || []).forEach(ov => {
+    const srcs = id === "bluebook" ? ["bluebook"] : ["bluebook", "manufacturer"];
+    srcs.forEach(src => (BASE.rulesets[src]?.overrides || []).forEach(ov => {
       const keys = ov.path.split("."), last = keys.pop();
       const obj = keys.reduce((o, k) => o[k], out);
       const cur = obj[last];
       obj[last] = id === "bluebook" ? ov.value : (ov.kind === "min" ? Math.max(cur, ov.value) : Math.min(cur, ov.value));
-    });
+    }));
     return (rsCache[id] = out);
   }
   function ruleNotes(id, topics) {
     if (!id || id === "si1924" || !BASE.rulesets) return [];
-    const bb = BASE.rulesets.bluebook;
-    const cl = bb.clauses.filter(c => topics.includes(c.topic)).map(c => ({ ...c, source: bb.short }));
-    const ov = (bb.overrides || []).filter(o => topics.includes(o.path.split(".")[0] === "ceiling" ? "ceiling" : o.path.split(".")[0] === "lining" ? "lining" : "partition"))
-      .map(o => ({ topic: o.path, section: o.section, text: o.label, si: o.si, conflict: true, verified: o.verified !== false, source: bb.short }));
-    return [...cl, ...ov];
+    const topicOf = p => p.split(".")[0] === "ceiling" ? "ceiling" : p.split(".")[0] === "lining" ? "lining" : "partition";
+    const srcs = id === "bluebook" ? ["bluebook"] : ["bluebook", "manufacturer"];
+    return srcs.flatMap(src => {
+      const rs = BASE.rulesets[src]; if (!rs) return [];
+      const cl = (rs.clauses || []).filter(c => topics.includes(c.topic)).map(c => ({ ...c, source: rs.short }));
+      const ov = (rs.overrides || []).filter(o => topics.includes(topicOf(o.path)))
+        .map(o => ({ topic: o.path, section: o.section, text: o.label, si: o.si, conflict: src === "bluebook", stricter: src !== "bluebook", verified: o.verified !== false, source: rs.short }));
+      return [...cl, ...ov];
+    });
   }
   const ceil = Math.ceil;
   const uniq = arr => [...new Set(arr.map(v => Math.round(v)))].sort((a, b) => a - b);
@@ -148,7 +153,8 @@
     const fx = (input.fixtures || []).map(f => {
       const spec = R.fixtures[f.kind] || R.fixtures.custom;
       const round = !!(f.d || (spec.d && !f.w));
-      let fw = round ? (f.d || spec.d) : (f.w || spec.w), fh = round ? (f.d || spec.d) : (f.h || spec.h);
+      const dd = spec.askD && o.spotD > 0 && !f.dCustom ? o.spotD : (f.d || spec.d);
+      let fw = round ? dd : (f.w || spec.w), fh = round ? dd : (f.h || spec.h);
       if (swap && !round) [fw, fh] = [fh, fw];
       const p = T({ x: f.x, y: f.y });
       return { ...f, round, x: p.x, y: p.y, fw, fh, kg: f.kg ?? spec.kg, name: spec.name };
@@ -163,10 +169,17 @@
     const clr = C.fixtureClearance;
 
     // חורים שגדולים מהמרווח – דורשים חילוף (קיטוע פרופיל ומסגרת)
+    const profW = (R.profiles[o.profile] || R.profiles.F47).width || 47;
+    const clearGap = S - profW;                       // רוחב פנוי בין שני משניים
+    const maxSpot = Math.floor(clearGap - 2 * clr);   // קוטר החור הגדול ביותר שנכנס בלי לגעת בפרופיל
     const trimmed = [], avoid = [];
     fx.forEach(f => {
-      if (f.fw + 2 * clr >= S - 40) trimmed.push(f); else avoid.push(f);
+      if (f.fw + 2 * clr >= clearGap) trimmed.push(f); else avoid.push(f);
     });
+    if (o.spotD > 0) {
+      if (o.spotD > maxSpot) warnings.push(`ספוט בקוטר חיתוך ${o.spotD} מ״מ לא נכנס בין המשניים (מרווח פנוי ${clearGap} מ״מ, מקסימום ${maxSpot} מ״מ כולל מרווח ביטחון) – כל ספוט כזה יקבל חילוף (קיטוע פרופיל ומסגרת). שקלו ספוט קטן יותר.`);
+      else notes.push(`ספוטים עד קוטר חיתוך ${o.spotD} מ״מ: נכנסים בין המשניים (המקסימום במרווח ${S} מ״מ הוא ${maxSpot} מ״מ). הפרופילים מוזזים כדי לא לפגוע בספוטים.`);
+    }
     const blockedX = avoid.map(f => ({ a: f.x - f.fw / 2 - clr, b: f.x + f.fw / 2 + clr, ref: f }));
     const secRes = layLines(W, S, [], blockedX);
     // ראשיים – מעל המשניים, מפוזרים לאורך Y
@@ -288,6 +301,7 @@
     if (W > C.expansionJoint || H > C.expansionJoint) warnings.push("התקרה ארוכה מ-12 מ׳ – נדרש מישק התפשטות (סעיף 5.10.1).");
     secRes.conflicts.forEach(c => { if (c.item) warnings.push(`${c.item.name} במיקום ${(c.item.x / 10).toFixed(0)} ס״מ – לא ניתן להתחמק מהפרופיל, יש להזיז את האביזר.`); });
     if (o.wet) notes.push("חדר רטוב: לוחות עמידי מים, מרחק משניים ≤406 מ״מ, ללא מחסום אדים, איחוי במרק על בסיס גבס (לא גיר).");
+    notes.push("פס איטום והפרדה (קופריבנד) לכל אורך המסילה ההיקפית, בכל מפגש של השלד עם קיר או תקרה בנויה.");
     if (o.dropCm < 8) warnings.push("הנמכה של פחות מ-8 ס״מ – אין מספיק מקום לשתי וערב + ספוטים. שקלו פרופיל ישיר (F47 עם מתלה ישיר).");
     const deepFix = fx.filter(f => ["downlight", "speaker"].includes(f.kind));
     if (deepFix.length && o.dropCm < 12) warnings.push("גופי תאורה / רמקולים דורשים בדרך כלל עומק של 10–12 ס״מ לפחות – בדקו בדף היצרן.");
@@ -303,6 +317,7 @@
     bill.add("hanger", "מתלה (נוניוס / מוט הברגה 6 מ״מ / לוחית תלייה)", "יח׳", hangers.length);
     bill.add("ceilAnchor", R.screws.ceilAnchor, "יח׳", hangers.length);
     bill.add("anchor", R.screws.anchor, "יח׳", ceil(perim / C.perimeterFix) + 4, "לפרופיל ההיקפי");
+    bill.add("seal", "פס איטום והפרדה (קופריבנד)", "מ׳", perim / 1000 * 1.05, "בכל מפגש שלד עם קיר / תקרה");
     for (let l = 1; l <= o.layers; l++) bill.add(screwKey(l, o.thickness), R.screws[screwKey(l, o.thickness)], "יח׳", screwsPerLayer * 1.1);
     bill.add("metal", R.screws.metal, "יח׳", trimmed.length * 12 + (pSec.joins + pPri.joins) * 4);
     addFinish(bill, area, boards.filter(b => b.layer === o.layers), o.finish, o.wet);
@@ -310,7 +325,7 @@
 
     return {
       ruleNotes: ruleNotes(o.ruleset, ["ceiling", "board", "general"]),
-      kind: "ceiling", W, H, swap, sec: S, stdSec, pri: P, hangerSpacing: hs, loadN,
+      kind: "ceiling", W, H, swap, sec: S, maxSpot, clearGap, stdSec, pri: P, hangerSpacing: hs, loadN,
       secondaries, primaries, hangers, boards, fixtures, trims, rows: ys, opts: o, area,
       warnings, notes, bill: bill.list(),
       stats: { area, secondaries: secondaries.length, primaries: primaries.length, hangers: hangers.length, boards: pack.boards, waste: pack.used ? Math.max(0, 1 - pack.area / pack.used) : 0 }
@@ -471,7 +486,8 @@
     bill.add("track-" + trackW, (R.profiles[trackW]?.name || "מסילה") + " – 3 מ׳", "יח׳", trackPack.count);
     const fixS = strict ? P.trackFixWet : P.trackFix;
     bill.add("anchor", R.screws.anchor, "יח׳", (ceil(bottom / fixS) + 1) + (ceil(L / fixS) + 1) + 2 * (ceil(Hh / P.endStudFix) + 1));
-    bill.add("seal", "פס איטום והפרדה (סרט ספוג)", "מ׳", (2 * L + 2 * Hh) / 1000 * 1.05);
+    bill.add("seal", "פס איטום והפרדה (קופריבנד)", "מ׳", (2 * L + 2 * Hh) / 1000 * 1.05, "בכל מפגש שלד עם קיר / רצפה / תקרה");
+    notes.push("פס איטום והפרדה (קופריבנד) לכל אורך המפגש של המסילות והניצבים הקיצוניים עם רצפה, תקרה וקירות – בכל חדר, לא רק ברטוב (ת״י 1924 סעיף 3.3.1.2 א).");
     bill.add("metal", R.screws.metal, "יח׳", studs.length * 4 + openings.length * 8);
     // ברגי לוחות: שולי לוח 250, אמצע 300
     for (let s = 0; s < o.sides; s++) for (let l = 1; l <= o.layers; l++) {
@@ -492,8 +508,13 @@
     addFinish(bill, area * o.sides, faces, o.finish, o.wet);
     bill.add("corner", "פינת מגן קשיחה (לפינות חוץ ופתחים)", "מ׳", openings.reduce((s, op) => s + (2 * op.h + op.w) * o.sides, 0) / 1000);
     if (o.insulation && !o.lining) bill.add("wool", `צמר סלעים / זכוכית ${prof.width >= 70 ? 50 : 40} מ״מ`, "מ״ר", area * 1.05);
+    if (o.wet && !o.lining) {
+      const curbLen = (L - openings.filter(op => op.kind === "door").reduce((s, op) => s + op.w, 0)) / 1000;
+      warnings.push("מחיצה בחדר רטוב: לפני הגבס בונים שורת בלוקים יצוקים בבטון (חגורת הגבהה) ברוחב המחיצה, ועליה המחיצה – ת״י 1924 סעיף 3.2.2. גובה החגורה מעל הריצוף הגמור לפי המתכנן (אורבונד: לפחות 1 ס״מ מעל הריצוף; במפרטי מכרז רבים 10–15 ס״מ).");
+      bill.add("curb", "חגורת הגבהה – שורת בלוקים יצוקים בבטון ברוחב המחיצה", "מ׳", curbLen, "בחדר רטוב, מתחת למחיצה");
+    }
     if (o.wet) {
-      notes.push("חדר רטוב: ניצבים כל ≤406 מ״מ, עיגון מסילות כל ≤300 מ״מ, פס איטום רציף, חגורת הגבהה, אטימת מרווח תחתון.");
+      notes.push("חדר רטוב: ניצבים כל ≤406 מ״מ, עיגון מסילות כל ≤300 מ״מ, פס איטום רציף מיחידה אחת, חגורת הגבהה, אטימת המרווח התחתון של הלוחות.");
       bill.add("sealant", "חומר איטום לתחתית הלוחות (סיליקון / פוליאוריטן)", "שפופרת", ceil(L / 4000) * o.sides);
     }
     if (o.tiles) notes.push(`חיפוי אריחים: משקל ≤30 ק״ג/מ״ר, ועד ${P.tileMaxKgPerM[o.layers >= 2 ? 2 : 1]} ק״ג למטר אורך מחיצה (3.9.3).`);
