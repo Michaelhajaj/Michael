@@ -146,7 +146,10 @@ export const WIRE_FORMAT = {
         "sprinkler",
         "detector",
         "linear",
+        "magnetic",
+        "slot",
         "vent",
+        "acunit",
         "panel",
         "custom"
        ]

@@ -35,7 +35,7 @@ export const PLAN_SCHEMA = {
         type: "object", additionalProperties: false,
         required: ["kind", "x", "y", "length_mm", "confidence"],
         properties: {
-          kind: { type: "string", enum: ["spot", "downlight", "speaker", "sprinkler", "detector", "linear", "vent", "panel", "custom"] },
+          kind: { type: "string", enum: ["spot", "downlight", "speaker", "sprinkler", "detector", "linear", "magnetic", "slot", "vent", "acunit", "panel", "custom"] },
           x: num, y: num, length_mm: num,
           confidence: { type: "string", enum: ["high", "medium", "low"] }
         }
@@ -62,7 +62,7 @@ What to extract:
 - scale: one clearly printed dimension (prefer the longest dimension line with a readable number). Give the two end points of that dimension line and its real length in meters (Israeli drawings are usually in cm, e.g. "420" = 4.20 m). found=false if no readable dimension.
 - ceilings: rectangular areas that get a suspended gypsum ceiling (hatched or labeled areas, "תקרת גבס", "ת.ג", "הנמכה", levels like "+2.60"). If the drawing is a floor plan with no ceiling information, return each room as an area. wet=true for bathrooms, toilets, showers, laundry (אמבטיה, שירותים, מקלחת, כביסה). height_cm = finished ceiling height if printed, else 0. drop_cm = drop below the slab if printed, else 0. For non-rectangular rooms, give the bounding rectangle and mention it in notes.
 - partitions: NEW gypsum walls only (labeled "גבס", "קיר גבס", "מחיצת גבס", or drawn with the drywall hatch). Each as a center-line segment. lining=true for gypsum lining on an existing wall (חיפוי גבס). height_cm if printed else 0. Do not return existing concrete or block walls as partitions.
-- fixtures: ceiling items - recessed spots, round downlights, speakers, sprinklers, smoke detectors, linear light profiles (length_mm = their length), AC supply/return grilles (vent), access panels (panel). Use the legend on the sheet when there is one. One entry per symbol - count carefully.
+- fixtures: ceiling items - recessed spots, round downlights, speakers, sprinklers, smoke detectors, linear light profiles (linear, length_mm = their length), recessed magnetic track profiles (magnetic, length_mm), linear slot AC diffusers (slot, length_mm), AC supply/return grilles (vent), indoor AC units above the ceiling (acunit), access panels (panel). Use the legend on the sheet when there is one. One entry per symbol - count carefully.
 - wall_elements: doors (width_mm from the plan, e.g. 80/90 cm), windows, and on electrical plans power outlets (box), switches (switch), and data/TV/phone points (data) - placed at the point on the wall.
 - notes: short Hebrew notes about anything uncertain (unclear symbols, missing scale, parts of the sheet that are cut off).
 - spot_cutout_mm: the largest recessed-spot cut-out diameter in mm if the legend or a note states it (e.g. "ספוט קוטר 8 ס\"מ" = 80), else 0.

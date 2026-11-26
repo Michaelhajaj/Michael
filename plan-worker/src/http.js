@@ -8,7 +8,7 @@ export function cors(origin, env) {
     ok,
     headers: {
       "Access-Control-Allow-Origin": ok && origin ? origin : allowed[0] || "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Vary": "Origin"
     }
@@ -16,12 +16,12 @@ export function cors(origin, env) {
 }
 export const json = (data, status, headers) => new Response(JSON.stringify(data), { status, headers: { ...headers, "Content-Type": "application/json; charset=utf-8" } });
 
-export async function overLimit(request, env) {
+export async function overLimit(request, env, bucket = "ai", limit = env.DAILY_LIMIT || "8") {
   if (!env.LIMITS) return false;
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-  const key = `ai:${new Date().toISOString().slice(0, 10)}:${ip}`;
+  const key = `${bucket}:${new Date().toISOString().slice(0, 10)}:${ip}`;
   const used = parseInt(await env.LIMITS.get(key) || "0", 10);
-  if (used >= parseInt(env.DAILY_LIMIT || "8", 10)) return true;
+  if (used >= parseInt(limit, 10)) return true;
   await env.LIMITS.put(key, String(used + 1), { expirationTtl: 60 * 60 * 26 });
   return false;
 }

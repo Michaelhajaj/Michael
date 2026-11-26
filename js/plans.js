@@ -113,6 +113,14 @@
       ctx.drawImage(img, sx, sy, p.imgW * p.mpp * v.z, p.imgH * p.mpp * v.z);
       ctx.globalAlpha = 1;
     }
+    (p.sheets || []).forEach(sh => {
+      if (!sh.visible || !$("#lyPlan").checked) return;
+      const el = getImg(sh); if (!el || !el.complete) return;
+      const f = sheetScale(p, sh), [sx, sy] = toScreen(sh.dx, sh.dy);
+      ctx.globalAlpha = sh.opacity ?? .6;
+      ctx.drawImage(el, sx, sy, sh.imgW * f * v.z, sh.imgH * f * v.z);
+      ctx.globalAlpha = 1;
+    });
     p.items.forEach(it => it.type === "ceiling" ? drawCeiling(it) : drawWall(it));
     drawPending();
   }
@@ -389,41 +397,54 @@
   function aiBar(html, error) {
     const b = $("#aiBar"); b.hidden = !html; b.innerHTML = html || ""; b.classList.toggle("is-error", !!error);
   }
-  async function aiDetect() {
+  // גיליונות נוספים (תאורה / רמקולים / מיזוג / חשמל) מונחים על התוכנית הראשית
+  const SHEET_KINDS = { gypsum: "תוכנית גבס / תקרות", lighting: "תוכנית תאורה", speakers: "תוכנית רמקולים", hvac: "תוכנית מיזוג", electrical: "תוכנית חשמל", other: "אחר" };
+  function sheetScale(p, sh) { return sh === p.base ? p.mpp : (p.imgW * p.mpp / sh.imgW) * (sh.k || 1); }
+  function baseSheet(p) { return { img: p.img, imgW: p.imgW, imgH: p.imgH, dx: 0, dy: 0, k: 1, kind: p.baseKind || "other", id: "base" }; }
+  async function aiDetect(sheetId) {
     const p = plan();
     if (!p.img) { flashHelp("הזיהוי האוטומטי עובד על תוכנית שהועלתה (PDF או תמונה)."); return; }
+    const sh = (typeof sheetId === "string" && sheetId !== "base") ? (p.sheets || []).find(x => x.id === sheetId) : null;
+    const src = sh || baseSheet(p);
     if (!CFG.planAiEndpoint) { aiBar("הזיהוי האוטומטי עוד לא הופעל באתר. בינתיים אפשר לסמן ידנית.", true); return; }
     const btn = $("#aiBtn"); btn.disabled = true; btn.textContent = "🤖 מנתח את התוכנית…";
     aiBar("Claude קורא את התוכנית: מקרא, מידות, תקרות, מחיצות, ספוטים ושקעים. זה לוקח בדרך כלל 30–90 שניות.");
     try {
-      const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = p.img; });
+      const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src.img; });
       const k = Math.min(1, 2400 / Math.max(im.width, im.height));
       const c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
       const cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height); cx.drawImage(im, 0, 0, c.width, c.height);
       const r = await fetch(CFG.planAiEndpoint.replace(/\/$/, "") + "/analyze", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: c.toDataURL("image/jpeg", 0.85), width: c.width, height: c.height })
+        body: JSON.stringify({ image: c.toDataURL("image/jpeg", 0.85), width: c.width, height: c.height, sheet: src.kind })
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || !data.result) { aiBar(AI_ERRORS[data.error] || "הזיהוי נכשל. נסו שוב, או סמנו ידנית.", true); return; }
-      applyAi(p, data.result);
+      applyAi(p, data.result, sh);
     } catch (e) {
       aiBar("אין חיבור לשרת הזיהוי. בדקו את החיבור ונסו שוב.", true);
     } finally { btn.disabled = false; btn.textContent = "🤖 זיהוי אוטומטי"; }
   }
-  function applyAi(p, r) {
+  function applyAi(p, r, sh) {
     const snapshot = JSON.stringify({ items: p.items, mpp: p.mpp, calibrated: p.calibrated, roomH: p.roomH });
-    const toPx = (x, y) => [x / 1000 * p.imgW, y / 1000 * p.imgH];
+    const src = sh || baseSheet(p);
+    const toPx = (x, y) => [x / 1000 * src.imgW, y / 1000 * src.imgH];
+    // מה לקחת מכל סוג גיליון: מגיליון תאורה/רמקולים/מיזוג – רק אביזרים (ותקרות אם עוד אין)
+    const hasCeil = p.items.some(i => i.type === "ceiling"), hasWall = p.items.some(i => i.type === "wall");
+    const kind = src.kind || "other";
+    const takeCeil = ["gypsum", "other"].includes(kind) || !hasCeil;
+    const takeWall = ["gypsum", "electrical", "other"].includes(kind) || !hasWall;
     let scaleMsg = "";
-    if (r.scale?.found && r.scale.meters > 0 && !p.calibrated) {
+    if (!sh && r.scale?.found && r.scale.meters > 0 && !p.calibrated) {
       const [a, b] = toPx(r.scale.x1, r.scale.y1), [c, d] = toPx(r.scale.x2, r.scale.y2);
       const dpx = Math.hypot(c - a, d - b);
       if (dpx > 20) { rescalePlan(p, (r.scale.meters / dpx) / p.mpp); scaleMsg = `קנה מידה לפי המידה "${esc(r.scale.label)}" (${fmt(r.scale.meters, 2)} מ׳). כדאי לוודא עם 📏.`; }
     }
     if (!scaleMsg) scaleMsg = p.calibrated ? "קנה המידה הקיים נשמר." : "⚠ לא נמצאה מידה קריאה. כיילו קנה מידה ידנית (📏) לפני שמזמינים חומר.";
-    const toW = (x, y) => { const [px, py] = toPx(x, y); return [px * p.mpp, py * p.mpp]; };
+    const f0 = sheetScale(p, sh || p.base);
+    const toW = (x, y) => { const [px, py] = toPx(x, y); return sh ? [px * f0 + sh.dx, py * f0 + sh.dy] : [px * p.mpp, py * p.mpp]; };
     const added = { ceilings: 0, walls: 0, fixtures: 0, elements: 0, skipped: 0 };
-    (r.ceilings || []).forEach(cg => {
+    (takeCeil ? r.ceilings || [] : []).forEach(cg => {
       const [x0, y0] = toW(Math.min(cg.x0, cg.x1), Math.min(cg.y0, cg.y1)), [x1, y1] = toW(Math.max(cg.x0, cg.x1), Math.max(cg.y0, cg.y1));
       if (x1 - x0 < 0.4 || y1 - y0 < 0.4) return;
       const opts = { ...defaultsCeiling(), name: cg.name || "", wet: !!cg.wet };
@@ -432,7 +453,7 @@
       p.items.push({ id: uid(), type: "ceiling", x: round2(x0), y: round2(y0), w: round2(x1 - x0), h: round2(y1 - y0), opts, fixtures: [], ai: true });
       added.ceilings++;
     });
-    (r.partitions || []).forEach(pt => {
+    (takeWall ? r.partitions || [] : []).forEach(pt => {
       const a = toW(pt.x1, pt.y1), b = toW(pt.x2, pt.y2);
       if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.3) return;
       const opts = defaultsWall(!!pt.lining);
@@ -445,6 +466,8 @@
       const it = p.items.filter(i => i.type === "ceiling").find(i => x >= i.x - 0.05 && x <= i.x + i.w + 0.05 && y >= i.y - 0.05 && y <= i.y + i.h + 0.05);
       if (!it) { added.skipped++; return; }
       const spec = R.fixtures[fx.kind] || R.fixtures.custom;
+      // אותו אביזר כבר קיים מגיליון אחר (עד 15 ס״מ) – לא מכפילים
+      if (it.fixtures.some(o => o.kind === fx.kind && Math.hypot(it.x + o.x - x, it.y + o.y - y) < 0.15)) { added.dup = (added.dup || 0) + 1; return; }
       const f = { id: uid(), kind: R.fixtures[fx.kind] ? fx.kind : "custom", x: round2(clamp(x - it.x, 0, it.w)), y: round2(clamp(y - it.y, 0, it.h)), kg: spec.kg, ai: fx.confidence };
       if (spec.d) f.d = spec.d; else { f.w = fx.length_mm > 0 ? Math.round(fx.length_mm) : spec.w; f.h = spec.h; }
       it.fixtures.push(f); added.fixtures++;
@@ -457,6 +480,7 @@
         if (t >= 0 && t <= g.len && d < bd) { bd = d; best = { it, t }; }
       });
       if (!best) { added.skipped++; return; }
+      if (best.it.elements.some(o => o.kind === el.kind && Math.abs(o.pos - best.t) < 0.15)) { added.dup = (added.dup || 0) + 1; return; }
       const spec = R.wallElements[el.kind] || R.wallElements.box;
       best.it.elements.push({ id: uid(), kind: el.kind, pos: round2(best.t), w: el.width_mm > 0 && (el.kind === "door" || el.kind === "window") ? Math.round(el.width_mm) : spec.w, h: spec.h, y: spec.y, ai: true });
       added.elements++;
@@ -470,7 +494,7 @@
     if (r.spot_cutout_mm > 0 && !S.spotD) { S.spotD = Math.round(r.spot_cutout_mm); syncSpot(); }
     S.sel = null; setTool("select"); computeAll(); fit(); changed();
     const notes = (r.notes || []).slice(0, 6).map(n => `<li>${esc(n)}</li>`).join("");
-    aiBar(`<div class="gp-aibar__row"><b>🤖 זוהו:</b> ${added.ceilings} תקרות · ${added.walls} מחיצות/חיפויים · ${added.fixtures} אביזרי תקרה · ${added.elements} פתחים ונקודות חשמל${added.skipped ? ` · ${added.skipped} לא שובצו` : ""}
+    aiBar(`<div class="gp-aibar__row"><b>🤖 זוהו:</b> ${added.ceilings} תקרות · ${added.walls} מחיצות/חיפויים · ${added.fixtures} אביזרי תקרה · ${added.elements} פתחים ונקודות חשמל${added.skipped ? ` · ${added.skipped} לא שובצו` : ""}${added.dup ? ` · ${added.dup} כפולים מגיליון אחר דולגו` : ""} · מתוך ${esc(SHEET_KINDS[kind] || "")}
       <button type="button" class="gp-del" id="aiUndo">ביטול הזיהוי</button><button type="button" class="gp-del" id="aiClose">סגירה</button></div>
       ${r.summary ? `<div>${esc(r.summary)}</div>` : ""}<div>${scaleMsg}</div>
       <div>חשוב לעבור על התוצאה: אפשר לגרור אביזרים, למחוק ולהוסיף. פריטים עם מסגרת מקווקוות זוהו בביטחון נמוך.</div>${notes ? `<ul>${notes}</ul>` : ""}`);
@@ -478,7 +502,7 @@
     $("#aiClose").onclick = () => aiBar("");
     updateScaleInfo();
   }
-  $("#aiBtn").onclick = aiDetect;
+  $("#aiBtn").onclick = () => aiDetect("base");
 
   function addFixture(w) {
     const p = plan();
@@ -560,7 +584,8 @@
       ["name", "שם / חדר", "text"],
       ["w", "אורך (מ׳)", "num", 0.01], ["h", "רוחב (מ׳)", "num", 0.01],
       ["dropCm", "הנמכה (ס״מ)", "num", 1],
-      ["profile", "מערכת פרופילים", "sel", { F47: "F47 שתי וערב", C60: "C60 + F47" }],
+      ["profile", "מערכת התקרה", "sel", { F47: "F47 שתי וערב (תלויה)", C60: "C60 שתי וערב (תלויה)", C50: "זקפים C50 בין קירות – עד 1.70 מ׳", C70: "זקפים C70 בין קירות – עד 2.00 מ׳", C100: "זקפים C100 בין קירות – עד 2.40 מ׳" }],
+      ["perimeter", "פרט היקפי", "sel", { none: "מסילה רגילה", shadow: "פרופיל ניתוק (צל)", cove: "קרניז לד נסתר" }],
       ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ" }],
       ["layers", "שכבות לוחות", "sel", { 1: "שכבה אחת", 2: "שתי שכבות" }],
       ["boardType", "סוג לוח", "sel", Object.fromEntries(Object.entries(R.board.types).map(([k, v]) => [k, v.name]))],
@@ -604,11 +629,44 @@
       el.innerHTML = `<h4>${esc(p.name)}</h4><p class="gp-sub">${p.calibrated ? "קנה מידה מכויל ✓" : (p.img ? "⚠ כיילו קנה מידה לפני הסימון (📏)" : "שרטוט על רשת, משבצת = 1 מ׳")}</p>
         <label class="gp-f"><span>שם התוכנית</span><input id="pName" value="${esc(p.name)}"></label>
         <label class="gp-f"><span>גובה החדר עד תקרת הבטון (מ׳)</span><input id="pRoomH" type="number" step="0.01" value="${p.roomH}"></label>
+        ${p.img ? `<hr><p class="gp-sub">גיליונות בתוכנית (מניחים תוכנית תאורה / רמקולים / מיזוג על תוכנית הגבס)</p>
+        <div class="gp-sheet"><b>ראשי</b><select data-sk="base">${Object.entries(SHEET_KINDS).map(([k, t]) => `<option value="${k}" ${(p.baseKind || "other") === k ? "selected" : ""}>${t}</option>`).join("")}</select><button class="gp-del" data-ai="base">🤖 זיהוי</button></div>
+        ${(p.sheets || []).map(sh => `<div class="gp-sheet" data-sh="${sh.id}">
+          <label><input type="checkbox" data-sv ${sh.visible ? "checked" : ""}> <b>${esc(sh.name)}</b></label>
+          <select data-sk="${sh.id}">${Object.entries(SHEET_KINDS).map(([k, t]) => `<option value="${k}" ${sh.kind === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+          <label class="gp-sheet__row">שקיפות <input type="range" min="10" max="100" value="${Math.round((sh.opacity ?? .6) * 100)}" data-so></label>
+          <div class="gp-sheet__row gp-2"><label>הזזה X (ס״מ)<input type="number" step="1" value="${Math.round(sh.dx * 100)}" data-sdx></label><label>הזזה Y (ס״מ)<input type="number" step="1" value="${Math.round(sh.dy * 100)}" data-sdy></label></div>
+          <label class="gp-sheet__row">קנה מידה (%)<input type="number" step="0.1" value="${((sh.k || 1) * 100).toFixed(1)}" data-sk2></label>
+          <div class="gp-sheet__row"><button class="gp-del" data-ai="${sh.id}">🤖 זיהוי מהגיליון</button> · <button class="gp-del" data-sdel>הסרה</button></div>
+        </div>`).join("")}
+        <label class="pl-btn gp-addsheet">＋ הוספת גיליון (תאורה / רמקולים / מיזוג / חשמל)<input type="file" accept="application/pdf,image/*" id="sheetFile" hidden></label>
+        <p class="gp-hint">גיליונות של אותו פרויקט בדרך כלל מונחים בדיוק אחד על השני. אם יש סטייה, מזיזים עם השדות עד שהקירות חופפים.</p>` : ""}
         <hr><p class="gp-sub">פריטים בתוכנית</p>
         <ul class="gp-list">${p.items.map(i => { const r = S.results[i.id]; const bad = r?.warnings.length; return `<li data-id="${i.id}"><span>${i.type === "ceiling" ? "▭" : i.opts.lining ? "▌" : "┃"} ${esc(i.opts.name || (i.type === "ceiling" ? "תקרה" : i.opts.lining ? "חיפוי" : "מחיצה"))}</span><span class="gp-badge ${bad ? "warn" : ""}">${bad ? bad + " הערות" : "תקין"}</span></li>`; }).join("") || "<li>עדיין אין פריטים. בחרו כלי בסרגל.</li>"}</ul>
         <p class="gp-hint">טיפ: התחילו בכיול קנה מידה, סמנו תקרות ומחיצות, והוסיפו ספוטים, רמקולים ושקעים במקום שלהם. הפיזור מתעדכן מיד.</p>`;
       $("#pName").oninput = e => { p.name = e.target.value; renderTabs(); save(); };
       $("#pRoomH").onchange = e => { p.roomH = parseFloat(e.target.value) || 2.7; changed(); };
+      $("#sheetFile")?.addEventListener("change", async e => {
+        const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+        try {
+          const im = await fileToImage(file);
+          const guess = /תאור|light/i.test(file.name) ? "lighting" : /רמקול|speak|audio/i.test(file.name) ? "speakers" : /מיזוג|hvac|ac/i.test(file.name) ? "hvac" : /חשמל|elec/i.test(file.name) ? "electrical" : "other";
+          (p.sheets = p.sheets || []).push({ id: uid(), name: file.name.replace(/\.[^.]+$/, "").slice(0, 30), kind: guess, ...im, dx: 0, dy: 0, k: 1, opacity: .6, visible: true });
+          changed();
+        } catch { alert("לא הצלחנו לפתוח את הקובץ."); }
+      });
+      $$("#props [data-sk]").forEach(sel => sel.onchange = () => { if (sel.dataset.sk === "base") p.baseKind = sel.value; else p.sheets.find(x => x.id === sel.dataset.sk).kind = sel.value; save(); });
+      $$("#props [data-ai]").forEach(b => b.onclick = () => aiDetect(b.dataset.ai));
+      $$("#props .gp-sheet[data-sh]").forEach(box => {
+        const sh = p.sheets.find(x => x.id === box.dataset.sh);
+        box.querySelector("[data-sv]").onchange = e => { sh.visible = e.target.checked; draw(); save(); };
+        box.querySelector("[data-so]").oninput = e => { sh.opacity = e.target.value / 100; draw(); };
+        box.querySelector("[data-so]").onchange = () => save();
+        box.querySelector("[data-sdx]").onchange = e => { sh.dx = (parseFloat(e.target.value) || 0) / 100; draw(); save(); };
+        box.querySelector("[data-sdy]").onchange = e => { sh.dy = (parseFloat(e.target.value) || 0) / 100; draw(); save(); };
+        box.querySelector("[data-sk2]").onchange = e => { sh.k = (parseFloat(e.target.value) || 100) / 100; draw(); save(); };
+        box.querySelector("[data-sdel]").onclick = () => { p.sheets = p.sheets.filter(x => x !== sh); changed(); };
+      });
       $$("#props .gp-list li[data-id]").forEach(li => li.onclick = () => { S.sel = { item: li.dataset.id }; renderProps(); draw(); });
       return;
     }
@@ -720,11 +778,8 @@
     el.classList.toggle("is-warn", !!p.img && !p.calibrated);
   }
 
-  async function handleFile(file) {
-    if (!file) return;
-    if (S.plans.length >= PAY.maxPlans && !S.adding) return;
-    const p = newPlan(file.name.replace(/\.[^.]+$/, "").slice(0, 30));
-    try {
+  async function fileToImage(file) {
+    const p = {};
       if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
         if (!window.pdfjsLib) throw new Error("pdf.js");
         pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js";
@@ -750,6 +805,14 @@
         c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
         p.img = c.toDataURL("image/jpeg", 0.85); p.imgW = c.width; p.imgH = c.height;
       }
+    return p;
+  }
+  async function handleFile(file) {
+    if (!file) return;
+    if (S.plans.length >= PAY.maxPlans && !S.adding) return;
+    const p = newPlan(file.name.replace(/\.[^.]+$/, "").slice(0, 30));
+    try {
+      Object.assign(p, await fileToImage(file));
       // הנחה ראשונית: רוחב התוכנית ≈ 15 מ׳ עד לכיול
       p.mpp = 15 / p.imgW;
     } catch (e) {
@@ -990,5 +1053,24 @@
   if (S.plans.length) { showEditor(); setTool("select"); }
   renderTabs(); renderResults();
   new ResizeObserver(resize).observe(wrap);
-  window.GP = { S, computeAll, renderResults };
+  // סיכום הפרויקט ליועץ ה-AI (בלי תמונות ובלי פרטים אישיים)
+  function contextSummary() {
+    const rs = R.rulesets[S.ruleset]?.short || "ת״י 1924";
+    const lines = [`כללים: ${rs}. קוטר ספוט מקסימלי: ${S.spotD || "לא צוין"} מ״מ.`];
+    S.plans.forEach(p => {
+      lines.push(`תוכנית "${p.name}" (גובה חדר ${p.roomH} מ׳):`);
+      p.items.forEach(it => {
+        const r = S.results[it.id];
+        if (it.type === "ceiling") {
+          const kinds = {}; it.fixtures.forEach(f => kinds[f.kind] = (kinds[f.kind] || 0) + 1);
+          lines.push(`- תקרה ${it.opts.name || ""} ${it.w}×${it.h} מ׳, ${it.opts.profile}, הנמכה ${it.opts.dropCm} ס״מ${it.opts.wet ? ", חדר רטוב" : ""}; אביזרים: ${Object.entries(kinds).map(([k, n]) => `${R.fixtures[k]?.name || k}×${n}`).join(", ") || "אין"}${r ? `; משניים כל ${r.sec} מ״מ, ${r.hangers.length} מתלים, ${r.stats.boards} לוחות` : ""}${r?.warnings.length ? `; אזהרות: ${r.warnings.join(" | ")}` : ""}`);
+        } else {
+          const len = Math.hypot(it.b.x - it.a.x, it.b.y - it.a.y).toFixed(2);
+          lines.push(`- ${it.opts.lining ? "חיפוי" : "מחיצה"} ${it.opts.name || ""} ${len} מ׳ × ${it.opts.height / 1000} מ׳, ${it.opts.profile}, ${it.opts.layers} שכבות${it.opts.wet ? ", חדר רטוב" : ""}; בקיר: ${it.elements.map(e => R.wallElements[e.kind]?.name).join(", ") || "כלום"}${r ? `; ${r.studs.length} ניצבים, ${r.stats.boards} לוחות` : ""}${r?.warnings.length ? `; אזהרות: ${r.warnings.join(" | ")}` : ""}`);
+        }
+      });
+    });
+    return lines.join("\n").slice(0, 7800);
+  }
+  window.GP = { S, computeAll, renderResults, contextSummary };
 })();

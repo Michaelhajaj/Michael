@@ -140,7 +140,7 @@
      ========================================================= */
   function ceiling(input) {
     const o = Object.assign({ thickness: 12.5, layers: 1, boardType: "regular", wet: false, boardLen: 2600, dir: "auto",
-      profile: "F47", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true }, input.opts || {});
+      profile: "F47", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none" }, input.opts || {});
     if (o.wet && o.boardType === "regular") o.boardType = "water";
     if (o.wet && o.boardType === "fire") o.boardType = "firewater";
     const R = rulesFor(o.ruleset);
@@ -184,9 +184,21 @@
     const secRes = layLines(W, S, [], blockedX);
     // ראשיים – מעל המשניים, מפוזרים לאורך Y
     const blockedY = o.avoidPrimaries ? fx.map(f => ({ a: f.y - f.fh / 2 - clr, b: f.y + f.fh / 2 + clr, ref: f })) : [];
+    // תקרת זקפים ומסילות (C50/C70/C100): הזקפים נושאים בין שני קירות – בלי ראשיים ובלי מתלים, עד המפתח של טבלה 4
+    const studSys = !!C.studSpan[o.profile];
+    const maxSpan = studSys ? C.studSpan[o.profile] : 0;
     const firstP = Math.min(C.hangerFromWall, P / 2);
-    const priRes = layLines(H - 2 * firstP, P, [], blockedY.map(b => ({ a: b.a - firstP, b: b.b - firstP, ref: b.ref })), 60, true);
-    const primaries = priRes.lines.map(v => v + firstP);
+    let primaries = [];
+    if (!studSys) {
+      const priRes = layLines(H - 2 * firstP, P, [], blockedY.map(b => ({ a: b.a - firstP, b: b.b - firstP, ref: b.ref })), 60, true);
+      primaries = priRes.lines.map(v => v + firstP);
+    } else if (H > maxSpan) {
+      // מעבר למפתח המותר: שורות תמיכה (פרופיל רוחבי + מתלים) כל ≤ מפתח מותר
+      const n = ceil(H / maxSpan);
+      for (let i = 1; i < n; i++) primaries.push(r1(H * i / n));
+      warnings.push(`מפתח ${H / 10} ס״מ גדול מהמותר לתקרת זקפים ${o.profile} (${maxSpan / 10} ס״מ, ת״י 1924 טבלה 4) – נוספו ${n - 1} שורות תמיכה עם מתלים. לחלופין: פרופיל גדול יותר או שתי וערב F47.`);
+    }
+    if (studSys) notes.push(`תקרת זקפים ומסילות ${o.profile}: הזקפים נשענים על מסילות בשני קירות נגדיים (מפתח עד ${maxSpan / 10} ס״מ לפי טבלה 4), מותקנים הפוכים זה לזה. ${H <= maxSpan ? "אין צורך במתלים." : ""}`);
 
     // עומס למתלה ומרחק מתלים
     const boardKg = (R.board.kgPerM2[o.thickness] || 9) * o.layers;
@@ -287,13 +299,14 @@
     const area = W * H / 1e6;
     const prof = R.profiles[o.profile] || R.profiles.F47;
     const profStock = prof.lengths;
+    const trackKey = prof.track || "UF47";
     const secPieces = secondaries.flatMap(s => s.edge ? [] : s.segs.map(([a, b]) => b - a));
     const priPieces = primaries.map(() => W);
     const pSec = pack1D(secPieces, profStock), pPri = pack1D(priPieces, profStock);
     const pTrim = pack1D(trimLen > 0 ? [trimLen] : [], profStock);
     const perim = 2 * (W + H);
-    const pPer = pack1D([perim], R.profiles[prof.track].lengths);
-    const crosses = secondaries.filter(s => !s.edge).length * primaries.length;
+    const pPer = pack1D([perim], R.profiles[trackKey].lengths);
+    const crosses = studSys ? 0 : secondaries.filter(s => !s.edge).length * primaries.length;
     const screwsPerLayer = secondaries.reduce((s, q) => s + q.segs.reduce((a, [p, e]) => a + ceil((e - p) / C.screwMax) + 1, 0), 0) +
       ys.length * secondaries.length; // תוספת לתפרים
 
@@ -310,9 +323,13 @@
     // כתב כמויות
     const bill = new Bill();
     bill.add(boardKey(o.boardType, o.thickness, BL), boardName(o.boardType, o.thickness, BL), "יח׳", pack.boards);
-    bill.add("prof-" + o.profile, prof.name + ` – ${pSec.stock / 1000} מ׳`, "יח׳", pSec.count + pPri.count + pTrim.count, "משניים + ראשיים + חילופים");
-    bill.add("track-" + prof.track, R.profiles[prof.track].name + " – 3 מ׳", "יח׳", pPer.count);
-    bill.add("cross-" + o.profile, `מחבר שתי וערב (צלב) ${o.profile}`, "יח׳", crosses + trimmed.length * 4);
+    bill.add("prof-" + o.profile, prof.name + ` – ${pSec.stock / 1000} מ׳`, "יח׳", pSec.count + pPri.count + pTrim.count, studSys ? "זקפי תקרה + חילופים" : "משניים + ראשיים + חילופים");
+    bill.add("track-" + trackKey, R.profiles[trackKey].name + " – 3 מ׳", "יח׳", pPer.count);
+    const per = C.perimeter[o.perimeter] || C.perimeter.none;
+    if (per.item) { bill.add("perim-" + o.perimeter, per.item, "מ׳", perim / 1000 * 1.05); notes.push(per.note); }
+    fx.forEach(f => { const sp = R.fixtures[f.kind]; if (sp?.tip && !notes.includes(sp.name + ": " + sp.tip)) notes.push(sp.name + ": " + sp.tip); });
+    if (studSys) bill.add("angle-trim", "זוויתן / מחבר לחילופים ולשורות תמיכה", "יח׳", trimmed.length * 4 + primaries.length * secondaries.length);
+    else bill.add("cross-" + o.profile, `מחבר שתי וערב (צלב) ${o.profile}`, "יח׳", crosses + trimmed.length * 4);
     bill.add("ext-" + o.profile, `מאריך ${o.profile}`, "יח׳", pSec.joins + pPri.joins);
     bill.add("hanger", "מתלה (נוניוס / מוט הברגה 6 מ״מ / לוחית תלייה)", "יח׳", hangers.length);
     bill.add("ceilAnchor", R.screws.ceilAnchor, "יח׳", hangers.length);

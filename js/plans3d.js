@@ -94,7 +94,7 @@ function render(p, results, o) {
       [[it.x], [it.x + it.w]].forEach(([x]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.02, drop, it.h), edgeMat); m.position.set(x, H - drop / 2, it.y + it.h / 2); root.add(m); });
       it.fixtures.forEach(f => {
         const X = it.x + f.x, Z = it.y + f.y;
-        const isLight = ["spot", "downlight", "linear"].includes(f.kind);
+        const isLight = ["spot", "downlight", "linear", "magnetic"].includes(f.kind);
         const col = isLight ? lightCol : f.kind === "speaker" ? 0x2a2a2a : 0xdddddd;
         const mat = new THREE.MeshStandardMaterial({ color: col, emissive: isLight ? lightCol : 0x000000, emissiveIntensity: isLight ? 2.2 : 0 });
         let m;
