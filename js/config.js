@@ -23,6 +23,7 @@ const SITE_CONFIG = {
   planAiEndpoint: "",                // ← כתובת שרת הזיהוי האוטומטי (ראו plan-worker/README.md), למשל "https://plan-worker.xxx.workers.dev"
 
   payments: {
+    free: true,                      // ← true = תקופת השקה: הכול פתוח בחינם. כשמוכנים לגבות – משנים ל-false
     prices: [35, 30, 25],            // ← תוכנית ראשונה, שנייה, ומהשלישית והלאה
     maxPlans: 10,
     // קישורי תשלום – כפתור בלי קישור מוצג כ"בקרוב". {amount} = הסכום, {order} = קוד ההזמנה

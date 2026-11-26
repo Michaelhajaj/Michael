@@ -35,7 +35,7 @@
 
   /* ---------------- Persistence ---------------- */
   function save() {
-    const data = { plans: S.plans.map(p => ({ ...p, view: null })), cur: S.cur, order: S.order, unlocked: S.unlocked, prices: S.prices, ruleset: S.ruleset, spotD: S.spotD };
+    const data = { plans: S.plans.map(p => ({ ...p, view: null })), cur: S.cur, order: S.order, unlocked: S.unlocked && !PAY.free, prices: S.prices, ruleset: S.ruleset, spotD: S.spotD };
     try { localStorage.setItem(STORE, JSON.stringify(data)); }
     catch (e) { try { localStorage.setItem(STORE, JSON.stringify({ ...data, plans: data.plans.map(p => ({ ...p, img: null })) })); } catch (_) {} }
   }
@@ -46,6 +46,7 @@
         S.plans = d.plans; S.cur = Math.min(d.cur || 0, d.plans.length - 1); S.order = d.order || ""; S.unlocked = !!d.unlocked; S.prices = d.prices || {}; S.ruleset = d.ruleset || "si1924"; S.spotD = d.spotD || 0;
       }
     } catch (_) {}
+    if (PAY.free) S.unlocked = true;
     if (!S.order) S.order = "GP-" + Math.random().toString(36).slice(2, 8).toUpperCase();
   }
 
@@ -690,7 +691,7 @@
   /* ---------------- Tabs / plans ---------------- */
   function renderTabs() {
     const t = $("#planTabs");
-    t.innerHTML = S.plans.map((p, i) => `<button class="gp-tab ${i === S.cur ? "is-on" : ""}" data-i="${i}">${esc(p.name)} <small>${planPrice(i)} ₪</small></button>`).join("") +
+    t.innerHTML = S.plans.map((p, i) => `<button class="gp-tab ${i === S.cur ? "is-on" : ""}" data-i="${i}">${esc(p.name)} ${PAY.free ? "" : `<small>${planPrice(i)} ₪</small>`}</button>`).join("") +
       (S.plans.length < PAY.maxPlans ? `<button class="gp-tab gp-tab--add" id="addPlan">＋ תוכנית נוספת</button>` : `<span class="gp-hint">מקסימום ${PAY.maxPlans} תוכניות בפרויקט</span>`) +
       (S.plans.length ? `<button class="gp-tab gp-tab--add" id="delPlan" title="מחיקת התוכנית הנוכחית">מחיקת תוכנית</button>` : "");
     $$(".gp-tab[data-i]", t).forEach(b => b.onclick = () => { S.cur = +b.dataset.i; S.sel = null; S.pending = null; showEditor(); });
@@ -898,6 +899,10 @@
     const n = paidCount(), amount = E.pricing(n, PAY.prices, PAY.maxPlans);
     const box = $("#payBox");
     box.classList.toggle("is-paid", S.unlocked);
+    if (PAY.free) {
+      box.innerHTML = `<div class="gp-pay__text"><p class="kicker">תקופת השקה</p><h3>כרגע הכול בחינם 🎉</h3><p>כל השרטוטים, כתב הכמויות והדוח להדפסה פתוחים. נשמח לשמוע מה חשבתם בוואטסאפ.</p></div>`;
+      return;
+    }
     if (S.unlocked) {
       box.innerHTML = `<div class="gp-pay__text"><p class="kicker">הדוח פתוח</p><h3>תודה! כל השרטוטים וכתב הכמויות פתוחים.</h3><p>אפשר להדפיס או לשמור כ-PDF, ולהעתיק את רשימת החומרים לספק.</p></div>`;
       return;
@@ -960,6 +965,7 @@
   }
 
   initBrand(); initSelects(); load();
+  if (PAY.free) { const ps = $(".gp-price-strip"); if (ps) ps.innerHTML = `<span><b>חינם בתקופת ההשקה</b></span><span>עד ${PAY.maxPlans} תוכניות בפרויקט</span>`; }
   function syncSpot() { $$(".js-spotd").forEach(i => { if (document.activeElement !== i) i.value = S.spotD || ""; }); }
   $$(".js-spotd").forEach(inp => {
     inp.value = S.spotD || "";
