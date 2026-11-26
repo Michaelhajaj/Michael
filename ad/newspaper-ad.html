@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>מודעת עיתון – מיכאל חגאג</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;500;700;800&display=block" rel="stylesheet">
+<style>
+  @page { size: 120mm 180mm; margin: 0; }
+  :root { --gold:#d4b06a; --gold2:#f1dca4; --ink:#0f0e0c; --paper:#f7f2e7; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:120mm; height:180mm; background:var(--ink); }
+  .ad {
+    width:120mm; height:180mm; position:relative; overflow:hidden;
+    background:var(--ink); color:#fff; font-family:'Heebo',sans-serif;
+    display:flex; flex-direction:column;
+  }
+  .frame { position:absolute; inset:3mm; border:0.5mm solid var(--gold); pointer-events:none; z-index:5; }
+  .frame::after { content:""; position:absolute; inset:1mm; border:0.2mm solid rgba(212,176,106,.55); }
+
+  .hero { position:relative; height:66mm; flex:none; }
+  .hero img { width:100%; height:100%; object-fit:cover; object-position:center 55%; display:block; }
+  .hero::after { content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(15,14,12,.15) 0%, rgba(15,14,12,0) 35%, rgba(15,14,12,.85) 85%, var(--ink) 100%); }
+  .logo { position:absolute; top:6mm; right:6mm; width:30mm; z-index:2;
+    background:rgba(247,242,231,.93); padding:2mm 2.5mm; border-radius:1mm; }
+  .logo img { width:100%; display:block; }
+  .tag { position:absolute; top:7mm; left:7mm; z-index:2; background:var(--gold); color:var(--ink);
+    font-weight:800; font-size:8.5pt; padding:1.2mm 3mm; border-radius:10mm; }
+
+  .head { text-align:center; margin-top:-15mm; position:relative; z-index:2; padding:0 8mm; }
+  .head h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:30pt; line-height:1;
+    background:linear-gradient(180deg,var(--gold2),var(--gold)); -webkit-background-clip:text; color:transparent; }
+  .head h2 { font-family:'Frank Ruhl Libre',serif; font-weight:500; font-size:13pt; margin-top:1.5mm; color:#fff; }
+  .orn { display:flex; align-items:center; gap:2mm; justify-content:center; margin:2.5mm auto 0; width:60mm; }
+  .orn span { flex:1; height:0.3mm; background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+  .orn i { width:1.8mm; height:1.8mm; background:var(--gold); transform:rotate(45deg); }
+
+  .body { display:flex; gap:4mm; padding:4mm 8mm 0; flex:1; min-height:0; }
+  .services { flex:1.15; list-style:none; font-size:9.6pt; line-height:1.35; }
+  .services li { display:flex; align-items:flex-start; gap:1.8mm; padding:0.9mm 0; border-bottom:0.15mm solid rgba(212,176,106,.22); }
+  .services li:last-child { border-bottom:0; }
+  .services li::before { content:"◆"; color:var(--gold); font-size:6pt; margin-top:1.3mm; }
+  .thumbs { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:1.5mm; }
+  .thumbs img { width:100%; height:100%; object-fit:cover; display:block; border:0.25mm solid rgba(212,176,106,.6); }
+  .thumbs img:first-child { grid-row:1 / 3; }
+
+  .trust { display:flex; justify-content:center; gap:2mm; padding:3.5mm 8mm 0; flex-wrap:wrap; }
+  .trust span { font-size:7.8pt; font-weight:500; color:var(--gold2); border:0.25mm solid rgba(212,176,106,.6);
+    padding:0.8mm 2.4mm; border-radius:10mm; white-space:nowrap; }
+
+  .cta { margin:4mm 6.5mm 6.5mm; background:linear-gradient(180deg,var(--gold2),var(--gold)); color:var(--ink);
+    text-align:center; padding:3mm 4mm 3.2mm; position:relative; z-index:6; }
+  .cta .free { font-weight:800; font-size:10pt; }
+  .cta .phone { font-family:'Heebo',sans-serif; font-weight:800; font-size:30pt; line-height:1.05; letter-spacing:.5pt; direction:ltr; }
+  .cta .sub { font-size:8.5pt; font-weight:500; }
+</style>
+</head>
+<body>
+<div class="ad">
+  <div class="frame"></div>
+
+  <div class="hero">
+    <img src="../images/works/arava-laser-ashdod-1.jpg" alt="">
+    <div class="logo"><img src="../images/logo.png" alt="Michael Hajaj"></div>
+    <div class="tag">מעל 50 פרויקטים</div>
+  </div>
+
+  <div class="head">
+    <h1>עבודות גבס</h1>
+    <h2>וצבעים דקורטיביים · ברמת דיוק אחרת</h2>
+    <div class="orn"><span></span><i></i><span></span></div>
+  </div>
+
+  <div class="body">
+    <ul class="services">
+      <li>תקרות גבס ותקרות אקוסטיות</li>
+      <li>נישות, מדפים ותאורה נסתרת</li>
+      <li>קירות, מחיצות והנמכות</li>
+      <li>טיח ערבה וצבעים דקורטיביים</li>
+      <li>שיפוצים – לבתים ולעסקים</li>
+    </ul>
+    <div class="thumbs">
+      <img src="../images/works/fine-line-ashdod.jpg" alt="">
+      <img src="../images/works/salon-ashdod-2.jpg" alt="">
+      <img src="../images/works/sloped-ceiling-tlv.jpg" alt="">
+    </div>
+  </div>
+
+  <div class="trust">
+    <span>הוסמך ע"י קנאוף · טמבור · נירלט</span>
+    <span>ביצוע לפי התקן</span>
+    <span>4 שנות ניסיון</span>
+  </div>
+
+  <div class="cta">
+    <div class="free">הצעת מחיר ללא התחייבות · מיכאל חגאג</div>
+    <div class="phone">058-5766956</div>
+    <div class="sub">אשדוד והסביבה · זמין גם בוואטסאפ</div>
+  </div>
+</div>
+</body>
+</html>
