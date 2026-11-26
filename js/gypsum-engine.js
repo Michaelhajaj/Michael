@@ -401,9 +401,11 @@
         if (boxBlock.some(b => x > b.a && x < b.b)) c += 10;
         jambs.forEach(jx => { const d = Math.abs(x - jx); if (d > 1 && d < P.jointFromOpening) c += 4; if (d <= 1) c += 4; });
       });
-      const first = ((off % BW) || BW);
-      if (first < 300 && L > 600) c += 2;
-      const last = (L - first) % BW; if (last > 0 && last < 300) c += 2;
+      // רצועות לוח צרות (<30 ס״מ) בכל צד ושכבה – חלשות ובזבזניות
+      if (L > 600) layoutJoints(off).forEach(set => {
+        const xs = [0, ...set.j, L];
+        xs.slice(1).forEach((x, i) => { if (x - xs[i] < 300) c += 2; });
+      });
       return c;
     }
     let off = 0, bc = Infinity;
@@ -413,20 +415,24 @@
     const forcedJ = uniq(jointSets.flatMap(s => s.j)).filter(x => !inOpening(x));
     const forced = uniq([...forcedJ, ...jambs]);
     const { lines, conflicts } = layLines(L, S, forced, boxBlock);
-    const studs = lines.map(x => {
-      const op = inOpening(x);
+    // ניצבים מלאים – מחוץ לפתחים בלבד
+    const studs = lines.filter(x => !inOpening(x)).map(x => {
       let type = "regular";
       if (x === 0 || x === L) type = "end";
       if (jambs.some(j => Math.abs(j - x) < 1)) type = "jamb";
-      if (op) type = op.kind === "door" ? "cripple" : "cripple";
-      return { x, type, op };
+      return { x, type };
     });
-    // ניצבי עזר מעל/מתחת לפתחים לפי מרחק
+    // ניצבים קצרים מעל/מתחת לפתחים: חובה מתחת לכל תפר לוחות, ומרחק ≤ S ביניהם
+    const allJoints = uniq(jointSets.flatMap(st => st.j));
     openings.forEach(op => {
-      const inside = studs.filter(s => s.x > op.x0 && s.x < op.x1);
-      if (!inside.length && op.x1 - op.x0 > S) {
-        for (let x = op.x0 + S; x < op.x1 - 50; x += S) studs.push({ x: r1(x), type: "cripple", op });
+      const must = uniq([op.x0, ...allJoints.filter(x => x > op.x0 + 1 && x < op.x1 - 1), op.x1]);
+      const xs = [];
+      for (let i = 0; i < must.length - 1; i++) {
+        const a = must[i], b = must[i + 1], n = Math.ceil((b - a) / S);
+        for (let k = 1; k < n; k++) xs.push(r1(a + (b - a) * k / n));
+        if (i < must.length - 2) xs.push(must[i + 1]);
       }
+      xs.forEach(x => studs.push({ x, type: "cripple", op }));
     });
     studs.sort((a, b) => a.x - b.x);
     conflicts.forEach(c => { if (c.item) warnings.push(`${c.item.name} במרחק ${(c.item.pos / 10).toFixed(0)} ס״מ – נופל על ניצב מחייב (קצה/פתח). הזיזו את הקופסה ב-5–10 ס״מ.`); });
@@ -466,7 +472,9 @@
     const pack = packBoards(pieces, BL);
 
     // פרופילים
-    const fullStuds = studs.filter(s => s.type !== "cripple");
+    // ניצבי צד דלת נספרים בנפרד כניצבים מחוזקים (1.25 מ״מ / מילוי עץ) – לא כפול
+    const doorJambs = new Set(openings.filter(op => op.kind === "door").flatMap(op => [op.x0, op.x1]));
+    const fullStuds = studs.filter(s => s.type !== "cripple" && !(s.type === "jamb" && doorJambs.has(s.x)));
     const crippleLens = studs.filter(s => s.type === "cripple").flatMap(s => {
       const op = s.op, out = [];
       if (op.y + op.h < Hh) out.push(Hh - (op.y + op.h) - 20);
