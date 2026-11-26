@@ -15,7 +15,8 @@
    נותנים שם: `plan-worker`, ולוחצים **Deploy**.
 3. לוחצים **Edit code**. מוחקים את כל הקוד שמופיע.
 4. פותחים בטאב חדש את הקובץ המוכן:
-   **https://michaelhajaj.github.io/Michael/plan-worker/dist/worker.js**
+   **https://michaelhajaj.github.io/Michael/plan-worker/dist/worker-lite.js**
+   (קובץ קצר, ~12KB, שאפשר להעתיק גם מהטלפון. `dist/worker.js` הוא אותו שרת עם ה-SDK המלא, למי שמעלה מהמחשב)
    מסמנים הכול (Ctrl+A), מעתיקים (Ctrl+C), חוזרים ל-Cloudflare ומדביקים (Ctrl+V).
 5. לוחצים **Deploy** (למעלה מימין).
 6. חוזרים לדף ה-Worker → **Settings → Variables and Secrets → Add**:
