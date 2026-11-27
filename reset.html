@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>איפוס האפליקציה | מתכנן הגבס</title>
+  <meta name="theme-color" content="#121211">
+  <style>
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#121211;color:#e9e4d8;font:17px/1.6 system-ui,Arial,sans-serif}
+    main{max-width:460px;padding:24px 16px;text-align:center}
+    h1{color:#c9a55c;font-size:24px}
+    button,a.btn{display:block;width:100%;box-sizing:border-box;margin:12px 0;padding:14px;border-radius:12px;border:0;font:600 17px system-ui,sans-serif;cursor:pointer;text-decoration:none}
+    #go{background:#c9a55c;color:#111}
+    a.btn{background:#2a2a27;color:#e9e4d8}
+    #msg{min-height:1.6em;color:#c9a55c}
+  </style>
+</head>
+<body>
+<main>
+  <h1>איפוס האפליקציה</h1>
+  <p>מוחק מהמכשיר הזה את כל התוכניות השמורות, ההגדרות והעותק הזמני של האתר, ופותח את המתכנן מחדש ונקי עם הגרסה האחרונה.</p>
+  <p><b>שימו לב:</b> אי אפשר לשחזר את מה שנמחק.</p>
+  <button id="go" type="button">🔄 לאפס ולהתחיל מחדש</button>
+  <a class="btn" href="plans.html">ביטול – חזרה למתכנן</a>
+  <p id="msg" role="status"></p>
+</main>
+<script>
+document.getElementById("go").addEventListener("click", async function () {
+  if (!confirm("למחוק את כל התוכניות וההגדרות מהמכשיר הזה?")) return;
+  var msg = document.getElementById("msg");
+  msg.textContent = "מאפס…";
+  try { localStorage.clear(); } catch (e) {}
+  try { sessionStorage.clear(); } catch (e) {}
+  try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
+  try { if (navigator.serviceWorker) { var rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(function (r) { return r.unregister(); })); } } catch (e) {}
+  msg.textContent = "✔ אופס. פותח את המתכנן…";
+  setTimeout(function () { location.replace("plans.html?fresh=" + Date.now()); }, 900);
+});
+</script>
+</body>
+</html>
