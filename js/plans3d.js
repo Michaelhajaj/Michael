@@ -101,8 +101,19 @@ function render(p, results, o) {
       const skirt = new THREE.MeshStandardMaterial({ color: 0x5e5850, roughness: .6 });
       [[it.w, 0.012, it.x + it.w / 2, it.y + 0.006], [it.w, 0.012, it.x + it.w / 2, it.y + it.h - 0.006], [0.012, it.h, it.x + 0.006, it.y + it.h / 2], [0.012, it.h, it.x + it.w - 0.006, it.y + it.h / 2]]
         .forEach(([w, d, x, z]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, d), skirt); m.position.set(x, 0.04, z); root.add(m); });
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(it.w, 0.0125 * it.opts.layers, it.h), ceilMat);
-      slab.position.set(it.x + it.w / 2, y, it.y + it.h / 2); root.add(slab);
+      let slab;
+      if (res?.vault && it.opts.vault === "barrel") {   // קמרון: משטח מעוגל לרוחב המפתח
+        const g = new THREE.PlaneGeometry(it.w, it.h, 32, 32); g.rotateX(Math.PI / 2);
+        const R = res.vault.R / 1000, rise = it.opts.vaultRise / 100, pos = g.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const t = res.swap ? pos.getX(i) : pos.getZ(i);
+          pos.setY(i, Math.sqrt(Math.max(0, R * R - t * t)) - (R - rise));
+        }
+        g.computeVertexNormals();
+        slab = new THREE.Mesh(g, ceilMat); ceilMat.side = THREE.DoubleSide;
+        // שיא הקמרון נשאר מתחת לתקרת הבטון
+        slab.position.set(it.x + it.w / 2, Math.min(y, H - 0.04 - rise), it.y + it.h / 2); root.add(slab);
+      } else { slab = new THREE.Mesh(new THREE.BoxGeometry(it.w, 0.0125 * it.opts.layers, it.h), ceilMat); slab.position.set(it.x + it.w / 2, y, it.y + it.h / 2); root.add(slab); }
       // bulkhead edge (סינר)
       const edgeMat = new THREE.MeshStandardMaterial({ color: o.ceil, roughness: .85 });
       [[it.w, 0.02, it.x + it.w / 2, it.y], [it.w, 0.02, it.x + it.w / 2, it.y + it.h]].forEach(([w, d, x, z]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, drop, d), edgeMat); m.position.set(x, H - drop / 2, z); root.add(m); });
@@ -115,10 +126,11 @@ function render(p, results, o) {
         let m;
         if (f.d) { m = new THREE.Mesh(new THREE.CylinderGeometry(f.d / 2000, f.d / 2000, 0.01, 28), mat); }
         else { const w = (f.rot ? f.h : f.w) / 1000, h = (f.rot ? f.w : f.h) / 1000; m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.01, h), mat); }
-        m.position.set(X, y - 0.01, Z); root.add(m);
+        const vy = (() => { if (!(res?.vault && it.opts.vault === "barrel")) return y; const R = res.vault.R / 1000, rise = it.opts.vaultRise / 100, t = res.swap ? X - (it.x + it.w / 2) : Z - (it.y + it.h / 2); return Math.min(y, H - 0.04 - rise) + Math.sqrt(Math.max(0, R * R - t * t)) - (R - rise); })();
+        m.position.set(X, vy - 0.01, Z); root.add(m);
         if (isLight && pointCount < 10) {
           const L = new THREE.SpotLight(lightCol, 14, H * 2.4, Math.PI / 3, .7, 1.4);
-          L.position.set(X, y - .03, Z); L.target.position.set(X, 0, Z);
+          L.position.set(X, vy - .03, Z); L.target.position.set(X, 0, Z);
           root.add(L); root.add(L.target); pointCount++;
         }
       });
@@ -145,15 +157,26 @@ function render(p, results, o) {
       const grp = new THREE.Group();
       grp.position.set(it.a.x + nx * off, 0, it.a.y + nz * off); grp.rotation.y = -ang;
       // wall with openings: build from segments
-      const ops = it.elements.filter(e => ["door", "opening"].includes(window.GYPSUM_RULES?.wallElements[e.kind]?.type)).map(e => ({ x0: e.pos - e.w / 2000, x1: e.pos + e.w / 2000, y0: (e.y || 0) / 1000, y1: ((e.y || 0) + e.h) / 1000 })).sort((a, b) => a.x0 - b.x0);
+      const ops = it.elements.filter(e => ["door", "opening"].includes(window.GYPSUM_RULES?.wallElements[e.kind]?.type)).map(e => { const sp = window.GYPSUM_RULES?.wallElements[e.kind] || {}, rise = sp.arch ? Math.min(e.rise ?? sp.rise, e.w / 2) / 1000 : 0;
+        return { x0: e.pos - e.w / 2000, x1: e.pos + e.w / 2000, y0: (e.y || 0) / 1000, ys: ((e.y || 0) + e.h) / 1000, y1: ((e.y || 0) + e.h) / 1000 + rise, rise, arch: !!sp.arch }; }).sort((a, b) => a.x0 - b.x0);
+      // משולשי הקיר מעל הקשת (בין הקשת לקו העליון)
+      const spandrel = op => {
+        const half = (op.x1 - op.x0) / 2, R = (half * half + op.rise * op.rise) / (2 * op.rise), cx = op.x0 + half, cy = op.y1 - R;
+        const sh = new THREE.Shape(); sh.moveTo(op.x0, op.ys);
+        for (let i = 0; i <= 24; i++) { const x = op.x0 + (op.x1 - op.x0) * i / 24; sh.lineTo(x, cy + Math.sqrt(Math.max(0, R * R - (x - cx) ** 2))); }
+        sh.lineTo(op.x1, op.y1); sh.lineTo(op.x0, op.y1); sh.closePath();
+        const g = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false }); g.translate(0, 0, -t / 2);
+        const m = new THREE.Mesh(g, wallMat); m.castShadow = m.receiveShadow = true; grp.add(m);
+      };
       const box = (x0, x1, y0, y1) => { if (x1 - x0 < .005 || y1 - y0 < .005) return; const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, t), wallMat); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0); m.castShadow = m.receiveShadow = true; grp.add(m); };
       let x = 0;
-      ops.forEach(op => { box(x, op.x0, 0, h); box(op.x0, op.x1, 0, op.y0); box(op.x0, op.x1, op.y1, h); x = op.x1; });
+      ops.forEach(op => { box(x, op.x0, 0, h); box(op.x0, op.x1, 0, op.y0); box(op.x0, op.x1, op.y1, h); if (op.arch && op.rise > 0) spandrel(op); x = op.x1; });
       box(x, len, 0, h);
       // door leaf / window glass
       ops.forEach((op, i) => {
         const el = it.elements.filter(e => ["door", "opening"].includes(window.GYPSUM_RULES?.wallElements[e.kind]?.type)).sort((a, b) => a.pos - b.pos)[i];
         const isDoor = window.GYPSUM_RULES?.wallElements[el.kind]?.type === "door";
+        if (op.arch) return;   // מעבר קשת – פתוח
         const m = new THREE.Mesh(new THREE.BoxGeometry(op.x1 - op.x0 - .02, op.y1 - op.y0 - .01, isDoor ? .04 : .01),
           new THREE.MeshStandardMaterial({ color: isDoor ? 0x8a6a4a : 0x9cc9e8, transparent: !isDoor, opacity: isDoor ? 1 : .35, roughness: .6 }));
         m.position.set((op.x0 + op.x1) / 2, (op.y0 + op.y1) / 2, 0); grp.add(m);

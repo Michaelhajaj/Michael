@@ -532,7 +532,7 @@
     });
     if (!best) { flashHelp("לחצו קרוב למחיצה (סמנו קודם מחיצה)."); return; }
     const kind = $("#elKind").value, spec = R.wallElements[kind];
-    const e = { id: uid(), kind, pos: round2(best.t), w: spec.w, h: spec.h, y: spec.y };
+    const e = { id: uid(), kind, pos: round2(best.t), w: spec.w, h: spec.h, y: spec.y, ...(spec.arch ? { rise: spec.rise } : {}) };
     best.it.elements.push(e); S.sel = { item: best.it.id, el: e.id }; computeItem(best.it); changed();
   }
   function flashHelp(t) { const h = $("#toolHelp"); h.textContent = t; h.style.background = "#f6dccf"; setTimeout(() => { h.style.background = ""; h.textContent = HELP[S.tool]; }, 2200); }
@@ -592,13 +592,16 @@
       ["w", "אורך (מ׳)", "num", 0.01], ["h", "רוחב (מ׳)", "num", 0.01],
       ["dropCm", "הנמכה (ס״מ)", "num", 1],
       ["profile", "מערכת התקרה", "sel", { F47: "F47 שתי וערב (תלויה)", C60: "C60 שתי וערב (תלויה)", C60d: "C60 חד-מפלסי צמוד (עד 20 ס״מ)", C50: "זקפים C50 בין קירות – עד 1.70 מ׳", C70: "זקפים C70 בין קירות – עד 2.00 מ׳", C100: "זקפים C100 בין קירות – עד 2.40 מ׳" }],
+      ["vault", "צורת התקרה", "sel", { none: "שטוחה", barrel: "קמרון (מעוגלת לרוחב)" }],
+      ["vaultRise", "גובה הקמרון / חץ (ס״מ)", "num", 1],
+      ["cornerR", "רדיוס פינות מעוגלות בהנמכה (ס״מ, 0 = ישרות)", "num", 1],
       ["hangerType", "סוג המתלה", "sel", { nonius: "מתלה נוניוס", spring: "מתלה קפיצי + מוט (CD-60)", rod6: "מוט הברגה 6 מ״מ", wire: "מוט פלדה 3.5 מ״מ", stud50: "זקף 50 כמתלה", strap: "לוחית תלייה מחוררת" }],
       ["perimeter", "פרט היקפי", "sel", { none: "מסילה רגילה", str: "STR – תקרה מרחפת (אלומיניום)", knife: "ויה ביזונה (סכין) – קו לד נסתר", shadow: "פרופיל ניתוק (צל)", cove: "קרניז לד נסתר" }],
       ["strGap", "גודל / רוחב הניתוק (מ״מ) – לפי התוכנית", "num", 1],
       ["strThk", "STR – דגם / גובה H", "sel", { "H7": "STR H=7 מ״מ", "H13": "STR H=13 מ״מ", "H20": "STR H=20 מ״מ", "H25": "STR H=25 מ״מ", "1.2": "עובי 1.2", "2.0": "עובי 2.0", "אחר": "אחר – לפי התוכנית" }],
       ["strColor", "צבע / גימור הניתוק", "sel", { "לבן": "לבן", "שחור": "שחור", "אנודייז כסף מט": "אנודייז (כסף מט)", "RAL": "גוון RAL לפי הזמנה" }],
       ["shadowModel", "פס ניתוק – דגם", "sel", { "TAF H13": "TAF H=13", "TAF H25": "TAF H=25", "OM H8": "אומגה OM H=8", "OM H13": "אומגה OM H=13", "OM H25": "אומגה OM H=25", "TAFG 12×12": "TAFG פרופיל ת׳ 12×12 (ג.ק.)", "אחר": "אחר – לפי התוכנית" }],
-      ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ", 18: "18 מ״מ (עמיד נגיפה)", 20: "20 מ״מ (Fireboard)", 22: "22 מ״מ (FirePlus)", 24: "24 מ״מ (מגן אש)", 25: "25 מ״מ (Fireboard)" }],
+      ["thickness", "עובי לוח", "sel", { 6.4: "6.4 מ״מ (קימורים)", 9.5: "9.5 מ״מ (קימורים)", 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ", 18: "18 מ״מ (עמיד נגיפה)", 20: "20 מ״מ (Fireboard)", 22: "22 מ״מ (FirePlus)", 24: "24 מ״מ (מגן אש)", 25: "25 מ״מ (Fireboard)" }],
       ["layers", "שכבות לוחות", "sel", { 1: "שכבה אחת", 2: "שתי שכבות" }],
       ["boardType", "סוג לוח", "sel", Object.fromEntries(Object.entries(R.board.types).map(([k, v]) => [k, v.name]))],
       ["boardLen", "אורך לוח", "sel", Object.fromEntries(R.board.lengths.map(l => [l, `120×${l / 10}`]))],
@@ -615,7 +618,7 @@
       ["profile", "פרופיל", "sel", { C50: "ניצב 50", C70: "ניצב 70", C100: "ניצב 100", C100h: "ניצב 100 עובי 0.8 (גבוה)", C150h: "ניצב 150 עובי 0.8 (גבוה)" }],
       ["layers", "שכבות בכל צד", "sel", { 1: "שכבה אחת", 2: "שתי שכבות" }],
       ["sides", "צדדים מחופים", "sel", { 2: "שני צדדים", 1: "צד אחד" }],
-      ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ", 18: "18 מ״מ (עמיד נגיפה)", 20: "20 מ״מ (Fireboard)", 22: "22 מ״מ (FirePlus)", 24: "24 מ״מ (מגן אש)", 25: "25 מ״מ (Fireboard)" }],
+      ["thickness", "עובי לוח", "sel", { 6.4: "6.4 מ״מ (קימורים)", 9.5: "9.5 מ״מ (קימורים)", 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ", 18: "18 מ״מ (עמיד נגיפה)", 20: "20 מ״מ (Fireboard)", 22: "22 מ״מ (FirePlus)", 24: "24 מ״מ (מגן אש)", 25: "25 מ״מ (Fireboard)" }],
       ["boardType", "סוג לוח", "sel", Object.fromEntries(Object.entries(R.board.types).map(([k, v]) => [k, v.name]))],
       ["boardLen", "אורך לוח", "sel", Object.fromEntries(R.board.lengths.map(l => [l, `120×${l / 10}`]))],
       ["spacing", "מרחק ניצבים (מ״מ, 0 = לפי התקן)", "num", 10],
@@ -688,7 +691,7 @@
     const kind = it.type === "ceiling" ? "ceiling" : it.opts.lining ? "lining" : "wall";
     const res = S.results[it.id];
     let html = `<h4>${kind === "ceiling" ? "תקרת גבס" : kind === "lining" ? "חיפוי קיר" : "מחיצת גבס"}</h4><p class="gp-sub">כל הערכים פתוחים לשינוי. ערך שחורג מהתקן יוחזר לערך התקני עם הערה.</p>`;
-    html += fieldDefs[kind].filter(d => (!d[0].startsWith("str") || it.opts.perimeter === "str" || (it.opts.perimeter === "shadow" && d[0] !== "strThk")) && (d[0] !== "shadowModel" || it.opts.perimeter === "shadow")).map(d => fieldHtml(d, d[0] === "w" || d[0] === "h" ? it[d[0]] : it.opts[d[0]])).join("");
+    html += fieldDefs[kind].filter(d => (!d[0].startsWith("str") || it.opts.perimeter === "str" || (it.opts.perimeter === "shadow" && d[0] !== "strThk")) && (d[0] !== "shadowModel" || it.opts.perimeter === "shadow") && (d[0] !== "vaultRise" || it.opts.vault === "barrel")).map(d => fieldHtml(d, d[0] === "w" || d[0] === "h" ? it[d[0]] : it.opts[d[0]])).join("");
     if (res) html += `<p class="gp-hint">${kind === "ceiling" ? `משניים כל ${res.sec} מ״מ (תקן: ${res.stdSec}), ראשיים כל ≤${res.pri}, מתלים כל ${res.hangerSpacing} מ״מ` : `ניצבים כל ≤${res.S} מ״מ (תקן: ${res.stdS}), אורך ניצב ${res.studLen} מ״מ`}</p>`;
     // alternatives
     html += `<hr><p class="gp-sub">השוואת אפשרויות (לחצו לבחירה)</p>` + altTable(it);
@@ -708,7 +711,7 @@
       html += `<hr><p class="gp-sub">בקיר (${it.elements.length})</p><ul class="gp-list">${it.elements.map(e => `<li data-el="${e.id}" class="${s.el === e.id ? "is-sel" : ""}"><span>${esc(R.wallElements[e.kind]?.name)}</span><b>${Math.round(e.pos * 100)} ס״מ</b></li>`).join("")}</ul>`;
       const e = s.el && it.elements.find(e => e.id === s.el);
       if (e) {
-        html += `${fieldHtml(["epos", "מרכז מתחילת הקיר (ס״מ)", "num", 1], Math.round(e.pos * 100))}<div class="gp-2">${fieldHtml(["ew", "רוחב (מ״מ)", "num", 10], e.w)}${fieldHtml(["eh", "גובה (מ״מ)", "num", 10], e.h)}</div>${fieldHtml(["ey", "גובה מהרצפה (מ״מ)", "num", 10], e.y)}<button class="gp-del" data-del>מחיקה</button>`;
+        html += `${fieldHtml(["epos", "מרכז מתחילת הקיר (ס״מ)", "num", 1], Math.round(e.pos * 100))}<div class="gp-2">${fieldHtml(["ew", "רוחב (מ״מ)", "num", 10], e.w)}${fieldHtml(["eh", "גובה (מ״מ)", "num", 10], e.h)}</div>${fieldHtml(["ey", "גובה מהרצפה (מ״מ)", "num", 10], e.y)}${R.wallElements[e.kind]?.arch ? fieldHtml(["erise", "גובה הקשת / חץ (מ״מ) – חצי רוחב = חצי עיגול", "num", 10], e.rise ?? R.wallElements[e.kind].rise) : ""}<button class="gp-del" data-del>מחיקה</button>`;
       }
       html += `<hr><button class="gp-del" data-flip>היפוך כיוון הקיר</button>`;
     }
@@ -725,7 +728,7 @@
         if (k === "w" || k === "h") it[k] = Math.max(0.3, v);
         else if (k === "fx") f.x = clamp(v / 100, 0, it.w); else if (k === "fy") f.y = clamp(v / 100, 0, it.h);
         else if (k === "fd") { f.d = v; f.dCustom = true; } else if (k === "fw") f.w = v; else if (k === "fh") f.h = v; else if (k === "fkg") f.kg = v; else if (k === "frot") f.rot = v;
-        else if (k === "epos") e.pos = v / 100; else if (k === "ew") e.w = v; else if (k === "eh") e.h = v; else if (k === "ey") e.y = v;
+        else if (k === "epos") e.pos = v / 100; else if (k === "ew") e.w = v; else if (k === "eh") e.h = v; else if (k === "ey") e.y = v; else if (k === "erise") e.rise = v;
         else it.opts[k] = v;
         computeItem(it); changed();
       };
@@ -923,7 +926,12 @@
     const sides = r.opts.sides;
     let s = `<svg viewBox="${-pad} ${-pad} ${W + 2 * pad} ${H + 2 * pad}" xmlns="http://www.w3.org/2000/svg" font-family="Assistant, sans-serif"><g transform="translate(0 ${H}) scale(1 -1)">`;
     s += `<rect x="0" y="0" width="${W}" height="${H}" fill="#fffdf8" stroke="#333" stroke-width="14"/>`;
-    r.openings.forEach(op => s += `<rect x="${op.x0}" y="${op.y}" width="${op.w}" height="${op.h}" fill="${op.door ? "#efe2d2" : "#dcebf6"}" stroke="#8a6a4a" stroke-width="10"/>`);
+    r.openings.filter(op => op.rise > 0).forEach(op => {
+      const half = op.w / 2, Rr = (half * half + op.rise * op.rise) / (2 * op.rise), cx = op.x0 + half, cy = op.y + op.h - Rr, pts = [];
+      for (let i = 0; i <= 30; i++) { const x = op.x0 + op.w * i / 30; pts.push(`${x},${cy + Math.sqrt(Math.max(0, Rr * Rr - (x - cx) ** 2))}`); }
+      s += `<polygon points="${op.x0},${op.y} ${pts.join(" ")} ${op.x1},${op.y}" fill="${op.door ? "#efe2d2" : "#dcebf6"}" stroke="#8a6a4a" stroke-width="10"/>`;
+    });
+    r.openings.filter(op => !(op.rise > 0)).forEach(op => s += `<rect x="${op.x0}" y="${op.y}" width="${op.w}" height="${op.h}" fill="${op.door ? "#efe2d2" : "#dcebf6"}" stroke="#8a6a4a" stroke-width="10"/>`);
     r.studs.forEach(st => {
       const c = st.type === "jamb" ? COLORS.clash : st.type === "cripple" ? "#7aa7d6" : COLORS.stud;
       if (st.type === "cripple" && st.op) {

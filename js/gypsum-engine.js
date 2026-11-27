@@ -36,6 +36,13 @@
     });
   }
   const ceil = Math.ceil;
+  // קשת מעגלית לפי מיתר (span) וחץ (rise): רדיוס ואורך הקשת
+  function arcOf(span, rise) {
+    if (!(rise > 0) || !(span > 0)) return { R: Infinity, len: span || 0 };
+    const R = (span * span / 4 + rise * rise) / (2 * rise);
+    const th = 2 * Math.asin(Math.min(1, span / (2 * R)));
+    return { R, len: R * th };
+  }
   const uniq = arr => [...new Set(arr.map(v => Math.round(v)))].sort((a, b) => a - b);
 
   /* ---------- כלי עזר ---------- */
@@ -141,7 +148,8 @@
      ========================================================= */
   function ceiling(input) {
     const o = Object.assign({ thickness: 12.5, layers: 1, boardType: "regular", wet: false, boardLen: 2600, dir: "auto",
-      profile: "F47", hangerType: "nonius", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none", strGap: 6, strThk: "H13", strColor: "לבן", shadowModel: "TAF H13" }, input.opts || {});
+      profile: "F47", hangerType: "nonius", vault: "none", vaultRise: 40, cornerR: 0, dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none", strGap: 6, strThk: "H13", strColor: "לבן", shadowModel: "TAF H13" }, input.opts || {});
+    if (o.boardType === "flex" && o.thickness > 9.5) o.thickness = 6.4;   // לוח לקימורים: 6.4 / 9.5 מ״מ
     if (o.wet && o.boardType === "regular") o.boardType = "water";
     if (o.wet && o.boardType === "fire") o.boardType = "firewater";
     const R = rulesFor(o.ruleset);
@@ -313,12 +321,16 @@
       if (onJoint) { f.status = "joint"; f.msg = "נופל על תפר לוחות – מומלץ להזיז 5–10 ס״מ"; }
     });
 
+    // קמרון: המשניים והלוחות עוקבים אחרי הקשת לרוחב ה-span (H)
+    const vault = o.vault === "barrel" && o.vaultRise > 0 ? arcOf(H, o.vaultRise * 10) : null;
+    const curveK = vault ? vault.len / H : 1;
+    if (curveK > 1) pieces.forEach(p => p.w = Math.ceil(p.w * curveK));
     const pack = packBoards(pieces, BL);
-    const area = W * H / 1e6;
+    const area = W * H / 1e6 * curveK;
     const prof = R.profiles[o.profile] || R.profiles.F47;
     const profStock = prof.lengths;
     const trackKey = prof.track || "UF47";
-    const secPieces = secondaries.flatMap(s => s.edge ? [] : s.segs.map(([a, b]) => b - a));
+    const secPieces = secondaries.flatMap(s => s.edge ? [] : s.segs.map(([a, b]) => (b - a) * curveK));
     const priPieces = primaries.map(() => W);
     const pSec = pack1D(secPieces, profStock), pPri = pack1D(priPieces, profStock);
     const pTrim = pack1D(trimLen > 0 ? [trimLen] : [], profStock);
@@ -352,6 +364,19 @@
     bill.add(boardKey(o.boardType, o.thickness, BL), boardName(o.boardType, o.thickness, BL), "יח׳", pack.boards);
     bill.add("prof-" + o.profile, prof.name + ` – ${pSec.stock / 1000} מ׳`, "יח׳", pSec.count + pPri.count + pTrim.count, studSys ? "זקפי תקרה + חילופים" : "משניים + ראשיים + חילופים");
     bill.add("track-" + trackKey, R.profiles[trackKey].name + " – 3 מ׳", "יח׳", pPer.count);
+    if (vault) {
+      bill.add("vaultprof", `פרופיל מעוגל למשניי הקמרון (רדיוס ${(vault.R / 10).toFixed(0)} ס״מ) – כיפוף במפעל / חריצים`, "יח׳", secondaries.filter(s => !s.edge).length, `אורך קשת ${(vault.len / 1000).toFixed(2)} מ׳ כל אחד`);
+      bill.add("vaultarc", "מסילה גמישה לקשת הקמרון בקצוות (שני קירות)", "מ׳", 2 * vault.len / 1000 * 1.1);
+      notes.push(`קמרון: חץ ${o.vaultRise} ס״מ על מפתח ${(H / 1000).toFixed(2)} מ׳ → רדיוס ${(vault.R / 10).toFixed(0)} ס״מ, אורך קשת ${(vault.len / 1000).toFixed(2)} מ׳ (שטח לוחות ×${curveK.toFixed(2)}). המשניים מכופפים לרדיוס (במפעל או בחריצים בכנפיים), הראשיים ישרים בגובה משתנה – אורך המתלים משתנה לפי הקשת. לוחות: בדרך כלל 2 שכבות 6.4 / 9.5 מ״מ (ת״י 1924 טבלה 2: לוחות לחיפויים מעוצבים בעלי קימורים).`);
+      if (o.thickness >= 12.5 && vault.R < 3000) warnings.push(`קמרון ברדיוס ${(vault.R / 10).toFixed(0)} ס״מ עם לוח ${o.thickness} מ״מ – לוח עבה כזה מתכופף יבש רק ברדיוס גדול. מומלץ לוח 6.4 / 9.5 מ״מ בשתי שכבות (סוג לוח: "לוח לקימורים").`);
+    }
+    if (o.cornerR > 0) {
+      const arc4 = 4 * Math.PI / 2 * o.cornerR * 10;
+      bill.add("cornerR", `מסילה גמישה לפינות מעוגלות (R=${o.cornerR} ס״מ)`, "מ׳", arc4 / 1000 * 1.1, "4 פינות");
+      bill.add("cornerRboard", "לוח לקימורים 6.4 מ״מ לחזית הסינר בפינות", "מ״ר", arc4 / 1000 * (o.dropCm / 100 + 0.05) * 1.2);
+      bill.add("archbead", "פינת מגן גמישה בגליל (לקשת)", "מ׳", arc4 / 1000 * 1.1);
+      notes.push(`פינות מעוגלות ברדיוס ${o.cornerR} ס״מ: מסילה גמישה בהיקף ההנמכה, חזית הסינר בלוח 6.4 מ״מ מכופף (מורטב ברדיוס קטן), פינת מגן גמישה.`);
+    }
     const per = C.perimeter[o.perimeter] || C.perimeter.none;
     if (per.item) {
       const det = o.perimeter === "str" ? ` (ניתוק ${o.strGap || 6} מ״מ, ${o.strThk || "לפי התוכנית"}, ${o.strColor || "לבן"})`
@@ -385,6 +410,7 @@
 
     return {
       ruleNotes: ruleNotes(o.ruleset, ["ceiling", "board", "general"]),
+      vault, curveK,
       kind: "ceiling", W, H, swap, sec: S, maxSpot, clearGap, stdSec, pri: P, hangerSpacing: hs, loadN,
       secondaries, primaries, hangers, boards, fixtures, trims, rows: ys, opts: o, area,
       warnings, notes, bill: bill.list(),
@@ -412,6 +438,7 @@
       wet: false, tiles: false, insulation: true, boardLen: 3000, spacing: 0, finish: "basic", lining: false }, input.opts || {});
     if (o.lining) o.sides = 1;
     const R = rulesFor(o.ruleset);
+    if (o.boardType === "flex" && o.thickness > 9.5) o.thickness = 6.4;   // לוח לקימורים: 6.4 / 9.5 מ״מ
     if (o.wet && o.boardType === "regular") o.boardType = "water";
     if (o.wet && o.boardType === "fire") o.boardType = "firewater";
     const L = r1(input.L), Hh = r1(o.height);
@@ -449,7 +476,7 @@
       return { ...e, w: e.w || spec.w, h: e.h || spec.h, y: e.y ?? spec.y, name: spec.name };
     });
     const tOf = k => (R.wallElements[k] || R.wallElements.box).type;
-    const openings = els.filter(e => tOf(e.kind) === "door" || tOf(e.kind) === "opening").map(e => ({ ...e, door: tOf(e.kind) === "door", x0: Math.max(0, r1(e.pos - e.w / 2)), x1: Math.min(L, r1(e.pos + e.w / 2)), over: e.pos - e.w / 2 < -1 || e.pos + e.w / 2 > L + 1 }));
+    const openings = els.filter(e => tOf(e.kind) === "door" || tOf(e.kind) === "opening").map(e => (R.wallElements[e.kind] || {}).arch ? { ...e, spring: e.h, rise: Math.min(e.rise ?? R.wallElements[e.kind].rise, e.w / 2), h: e.h + Math.min(e.rise ?? R.wallElements[e.kind].rise, e.w / 2) } : e).map(e => ({ ...e, door: tOf(e.kind) === "door", x0: Math.max(0, r1(e.pos - e.w / 2)), x1: Math.min(L, r1(e.pos + e.w / 2)), over: e.pos - e.w / 2 < -1 || e.pos + e.w / 2 > L + 1 }));
     openings.filter(op => op.over).forEach(op => warnings.push(`${op.name} יוצא מגבולות הקיר – בדקו את המיקום והרוחב (נחתך לאורך הקיר).`));
     const boxes = els.filter(e => tOf(e.kind) === "box");
     const loads = els.filter(e => tOf(e.kind) === "load");
@@ -499,7 +526,7 @@
       const must = uniq([op.x0, ...allJoints.filter(x => x > op.x0 + 1 && x < op.x1 - 1), op.x1]);
       const xs = [];
       for (let i = 0; i < must.length - 1; i++) {
-        const a = must[i], b = must[i + 1], n = Math.ceil((b - a) / S);
+        const a = must[i], b = must[i + 1], n = Math.ceil((b - a) / (op.rise > 0 ? Math.min(S, 300) : S));   // מעל קשת – כל ≤30 ס״מ
         for (let k = 1; k < n; k++) xs.push(r1(a + (b - a) * k / n));
         if (i < must.length - 2) xs.push(must[i + 1]);
       }
@@ -595,6 +622,16 @@
       bill.add("pj-" + o.plasterJoint, `פרופיל ניתוק גבס-טיח ${o.plasterJoint} – מוט 3 מ׳`, "יח׳", ceil(2 * Hh * o.sides / 3000));
       notes.push("מפגש גבס–טיח: פרופיל ניתוק U במקום חיבור קשיח, כדי למנוע סדק (ראו גם ת״י 1924 3.8.2 – מישק הפרדה).");
     }
+    // קשתות: מסילה גמישה, לוח לקימורים לסופיט, פינת מגן גמישה
+    openings.filter(op => op.rise > 0).forEach(op => {
+      const a = arcOf(op.w, op.rise), wallT = (prof.width + 2 * o.layers * o.thickness * (o.sides || 1)) / 1000;
+      bill.add("archtrack", "מסילה גמישה לקשתות (או מסילה מחורצת)", "מ׳", 2 * a.len / 1000 * 1.1, "שני צדי הקשת");
+      bill.add("archboard", "לוח לקימורים 6.4 מ״מ לתחתית הקשת (סופיט)", "מ״ר", a.len / 1000 * wallT * 1.2);
+      bill.add("archbead", "פינת מגן גמישה בגליל (לקשת)", "מ׳", 2 * a.len / 1000 * 1.1);
+      bill.add("archstud", `${prof.name} – קטעים מעל הקשת (כל ≤30 ס״מ)`, "מ׳", (ceil(op.w / 300) + 1) * Math.max(0.2, (Hh - op.y - op.h) / 1000 + op.rise / 2000));
+      notes.push(`${op.name}: רוחב ${op.w / 10} ס״מ, חץ ${Math.round(op.rise / 10)} ס״מ → רדיוס ${(a.R / 10).toFixed(0)} ס״מ, אורך קשת ${(a.len / 10).toFixed(0)} ס״מ. ${R.wallElements[op.kind]?.tip || ""}`);
+      if (a.R < 1000) notes.push(`רדיוס ${(a.R / 10).toFixed(0)} ס״מ – קטן: לוח 6.4 מ״מ מורטב או שתי שכבות דקות, לפי טבלת הרדיוסים של יצרן הלוח.`);
+    });
     loads.forEach(e => {
       const sp = R.wallElements[e.kind] || {};
       if (sp.reinforce === "frame") {
@@ -650,7 +687,7 @@
     return total;
   }
 
-  const API = { rulesFor, ruleNotes, ceiling, wall, mergeBills, pricing, layLines, pack1D, packBoards, maxHeightFor };
+  const API = { arcOf, rulesFor, ruleNotes, ceiling, wall, mergeBills, pricing, layLines, pack1D, packBoards, maxHeightFor };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else root.GypsumEngine = API;
 })(this);
