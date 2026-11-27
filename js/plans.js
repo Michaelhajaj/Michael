@@ -596,7 +596,7 @@
       ["strGap", "STR – גודל הניתוק (מ״מ)", "num", 1],
       ["strThk", "STR – דגם / גובה H", "sel", { "H7": "STR H=7 מ״מ", "H13": "STR H=13 מ״מ", "H20": "STR H=20 מ״מ", "H25": "STR H=25 מ״מ", "1.2": "עובי 1.2", "2.0": "עובי 2.0", "אחר": "אחר – לפי התוכנית" }],
       ["strColor", "STR – גימור", "sel", { "לבן": "לבן", "שחור": "שחור", "אנודייז כסף מט": "אנודייז (כסף מט)", "RAL": "גוון RAL לפי הזמנה" }],
-      ["shadowModel", "פרופיל ניתוק – דגם", "sel", { "TAF H13": "TAF H=13", "TAF H25": "TAF H=25", "OM H8": "אומגה OM H=8", "OM H13": "אומגה OM H=13", "OM H25": "אומגה OM H=25", "אחר": "אחר – לפי התוכנית" }],
+      ["shadowModel", "פרופיל ניתוק – דגם", "sel", { "TAF H13": "TAF H=13", "TAF H25": "TAF H=25", "OM H8": "אומגה OM H=8", "OM H13": "אומגה OM H=13", "OM H25": "אומגה OM H=25", "TAFG 12×12": "TAFG פרופיל ת׳ 12×12 (ג.ק.)", "אחר": "אחר – לפי התוכנית" }],
       ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ" }],
       ["layers", "שכבות לוחות", "sel", { 1: "שכבה אחת", 2: "שתי שכבות" }],
       ["boardType", "סוג לוח", "sel", Object.fromEntries(Object.entries(R.board.types).map(([k, v]) => [k, v.name]))],
@@ -619,7 +619,10 @@
       ["boardLen", "אורך לוח", "sel", Object.fromEntries(R.board.lengths.map(l => [l, `120×${l / 10}`]))],
       ["spacing", "מרחק ניצבים (מ״מ, 0 = לפי התקן)", "num", 10],
       ["finish", "רמת גימור", "sel", Object.fromEntries(Object.entries(R.finish).map(([k, v]) => [k, v.name]))],
-      ["wet", "חדר רטוב", "chk"], ["tiles", "חיפוי אריחים", "chk"], ["insulation", "בידוד בחלל המחיצה", "chk"]
+      ["wet", "חדר רטוב", "chk"], ["tiles", "חיפוי אריחים", "chk"], ["insulation", "בידוד בחלל המחיצה", "chk"],
+      ["skirting", "פנל / ניתוק ברצפה", "sel", { none: "ללא", "PSG-U H50": "פנל שקוע עם ניתוק PSG-U H=50", "PSG-U H70": "פנל שקוע עם ניתוק PSG-U H=70", "PSG-U H100": "פנל שקוע עם ניתוק PSG-U H=100", "BFG H55": "פנל ניתוק BFG H=55", "STR": "STR כפס ניתוק קיר-רצפה" }],
+      ["wallEnd", "קצה מחיצה חופשי", "sel", { none: "נגמרת בקיר בשני הצדדים", "edge3": "פרופיל קצה 3 מ״מ", "edge4": "פרופיל קצה 4 מ״מ (מקל סבא)", "corner": "פינת מגן בלבד" }],
+      ["plasterJoint", "ניתוק מול טיח בקצוות", "sel", { none: "ללא", "U H10": "פרופיל U ניתוק גבס-טיח H=10", "U H15": "פרופיל U H=15", "U H20": "פרופיל U H=20" }]
     ]
   };
   fieldDefs.lining = fieldDefs.wall.map(f => f[0] === "profile" ? ["profile", "פרופיל", "sel", { F47: "F47 (על זוויתנים)", C60: "C60", C50: "ניצב 50 עצמאי" }] : f).filter(f => f[0] !== "sides" && f[0] !== "insulation");

@@ -547,6 +547,19 @@
       bill.add("doorstud", `ניצב מחוזק לדלת (1.25 מ״מ, או ניצב עם מילוי עץ)`, "יח׳", 2);
       bill.add("doorangle", "זוויתן חיזוק 1.5 מ״מ לעיגון ניצבי דלת", "יח׳", 4);
     });
+    // פרופילי גמר (ג.ק. ציוד / קובי פרופילים): פנל שקוע, קצה מחיצה, ניתוק מול טיח – מוטות 3 מ׳
+    if (o.skirting && o.skirting !== "none") {
+      bill.add("skirt-" + o.skirting, `פנל / פרופיל ניתוק ברצפה – ${o.skirting} – מוט 3 מ׳`, "יח׳", ceil(bottom * o.sides * 1.05 / 3000));
+      notes.push(`פנל שקוע עם ניתוק (${o.skirting}): מתקינים לפני הלוחות, מפולס לרצפה; הלוח נעצר בפרופיל. לתאם את גובה הריצוף.`);
+    }
+    if (o.wallEnd && o.wallEnd !== "none") {
+      const nm = { edge3: "פרופיל קצה למחיצת גבס 3 מ״מ", edge4: "פרופיל קצה למחיצת גבס 4 מ״מ (מקל סבא)", corner: "פינת מגן קשיחה לקצה המחיצה" }[o.wallEnd];
+      bill.add("end-" + o.wallEnd, nm + " – מוט 3 מ׳", "יח׳", ceil(Hh * 2 / 3000) || 1, "קצה חופשי: שני צדי הקצה");
+    }
+    if (o.plasterJoint && o.plasterJoint !== "none") {
+      bill.add("pj-" + o.plasterJoint, `פרופיל ניתוק גבס-טיח ${o.plasterJoint} – מוט 3 מ׳`, "יח׳", ceil(2 * Hh * o.sides / 3000));
+      notes.push("מפגש גבס–טיח: פרופיל ניתוק U במקום חיבור קשיח, כדי למנוע סדק (ראו גם ת״י 1924 3.8.2 – מישק הפרדה).");
+    }
     loads.forEach(e => {
       const sp = R.wallElements[e.kind] || {};
       if (sp.reinforce === "frame") {
