@@ -339,6 +339,7 @@ ol.steps li{margin-bottom:6px}
     <h2>👫 בני הבית וסנכרון</h2>
     <p class="sub" id="whoNote"></p>
     <div class="list-edit" id="peopleEdit"></div>
+    <p class="muted" style="font-size:13px;margin:6px 0 0">"הכנסות ל" = לאיזה חשבון נכנסת הכנסה שהאדם הזה רושם. מיכאל: הכנסות מהעסק ← עסקי. אסתר: משכורת מהתלוש ← משותף. אפשר תמיד לשנות בתנועה עצמה.</p>
     <div class="btns" style="margin-top:8px"><button class="btn small" id="savePeople">שמור שמות</button><button class="btn small ghost" id="switchMe">אני לא <span id="meName"></span> – החלף משתמש</button></div>
     <details id="shareHow"><summary>איך מחברים את אסתר (או בן בית אחר)?</summary>
       <ol class="steps">
@@ -417,7 +418,7 @@ ol.steps li{margin-bottom:6px}
   <div class="card">
     <h2>איך זה עובד</h2>
     <h3>שני חשבונות: משותף ועסקי</h3>
-    <p>כל תנועה שייכת ל<b>🏠 חשבון המשותף</b> (הבית שלך ושל אשתך) או ל<b>🧰 חשבון העסקי</b> (הגבס והשיפוצים). למעלה בוחרים מה להציג: <b>הכל</b>, רק <b>משותף</b> או רק <b>עסקי</b>.</p>
+    <p>כל תנועה שייכת ל<b>🏠 חשבון המשותף</b> (הבית שלך ושל אשתך) או ל<b>🧰 חשבון העסקי</b> (הגבס והשיפוצים). הכנסה שמיכאל רושם נכנסת אוטומטית לעסקי, והמשכורת של אסתר (תלוש) נכנסת למשותף. למעלה בוחרים מה להציג: <b>הכל</b>, רק <b>משותף</b> או רק <b>עסקי</b>.</p>
     <h3>העברות בין החשבונות</h3>
     <p>כשאתה מעביר כסף מהעסק הביתה (או הפוך), רושמים <b>"↔️ העברה"</b>. העברה היא לא הכנסה ולא הוצאה: בתצוגת "הכל" היא לא נספרת, ובתצוגה של חשבון אחד היא מופיעה ככסף שנכנס או יצא ממנו. ככה תמיד רואים כמה העסק הרוויח, כמה הבית הוציא, וכמה עבר ביניהם.</p>
     <h3>💝 מעשרות</h3>
@@ -544,7 +545,7 @@ const DEF_EXP=[
  ['clothes','ביגוד והנעלה','👕'],['home','בית ותחזוקה','🛠️'],['fun','בילויים, פנאי וחופשות','🎉'],
  ['subs','מנויים','📺'],['gifts','מתנות ואירועים','🎁'],['loans','הלוואות והחזרים','📉'],
  ['pets','חיות מחמד','🐾'],['other','אחר','📦']];
-const DEF_INC=[['salary','משכורת','💼'],['side','עבודה נוספת','⏱️'],
+const DEF_INC=[['salary','משכורת (תלוש)','💼'],['side','עבודה נוספת','⏱️'],
  ['benefits','קצבאות (ביטוח לאומי, ילדים…)','🏛️'],['refund','החזרים','↩️'],['gift','מתנה','🎁'],['other_in','אחר','💰']];
 const BIZ_EXP=[['b_mat','חומרי גבס ובניין','🧱'],['b_tools','כלי עבודה וציוד','🪚'],['b_workers','פועלים וקבלני משנה','👷'],
  ['b_car','רכב עבודה ודלק','🚚'],['b_vat','מע"מ','🧾'],['b_tax','מקדמות מס הכנסה','🏛️'],['b_bl','ביטוח לאומי (עצמאי)','🛡️'],
@@ -589,6 +590,8 @@ function migrate(s){
     const st=s.settings;if(st.savingsPct==null)st.savingsPct=10;if(st.maaserPct==null)st.maaserPct=10;if(!st.maaserBase)st.maaserBase='net';if(st.maaserOn==null)st.maaserOn=true;
     s.v=2;
   }
+  if(s.v<3){const sal=s.cats.income.find(c=>c.id==='salary');if(sal&&sal.name==='משכורת')sal.name='משכורת (תלוש)';
+    for(const k in s.people){const x=s.people[k];if(x&&!x.incAcc)x.incAcc=guessIncAcc(x.name)}s.v=3}
   return s;
 }
 function fresh(){return migrate({v:0,tx:[],cards:[],cats:{expense:DEF_EXP.map(([id,name,icon])=>({id,name,icon,budget:0})),income:DEF_INC.map(([id,name,icon])=>({id,name,icon}))},settings:{savingsPct:10,savingsFixed:null,theme:''}})}
@@ -606,6 +609,9 @@ const people=()=>S.people||{};
 const pName=id=>(people()[id]||{}).name||'';
 const pPill=id=>id&&people()[id]?`<span class="pill who" style="--pc:${esc(people()[id].color)}">${esc(pName(id))}</span>`:'';
 const multi=()=>Object.keys(people()).length>1;
+const guessIncAcc=name=>/מיכא/.test(name||'')?'biz':'home';
+const incAccOf=pid=>{const x=people()[pid];return x?(x.incAcc||guessIncAcc(x.name)):'home'};
+const incCatFor=acc=>acc==='home'?'salary':null;
 
 let view='all';try{view=localStorage.getItem(KEY+'-view')||'all'}catch(e){}
 if(!['all','home','biz'].includes(view))view='all';
@@ -844,7 +850,7 @@ function renderSettings(){
   for(const type of ['expense','income'])
     $(type==='expense'?'#catExpEdit':'#catIncEdit').innerHTML=S.cats[type].map(c=>`<div class="it" data-type="${type}" data-id="${esc(c.id)}"><input class="ic" type="text" value="${esc(c.icon)}" maxlength="4" aria-label="אימוג'י"><input type="text" class="nm" value="${esc(c.name)}" aria-label="שם">${accSel(c.acc,true)}${type==='income'?`<label title="הכנסה שלא חייבת במעשר"><input type="checkbox" class="nmc"${c.nm?' checked':''}>בלי מעשר</label>`:''}${c.id==='maaser'?'':`<button data-rmcat="${type}:${esc(c.id)}" aria-label="מחק">🗑️</button>`}</div>`).join('');
   $('#theme').value=st.theme||'';
-  $('#peopleEdit').innerHTML=Object.entries(people()).map(([k,x])=>`<div class="it" data-pid="${esc(k)}"><span class="dotc" style="--pc:${esc(x.color)}"></span><input type="text" class="nm" value="${esc(x.name)}" maxlength="20" aria-label="שם">${k===me?'<span class="pill">אתה</span>':''}</div>`).join('')||'<div class="muted">עוד לא נבחר שם</div>';
+  $('#peopleEdit').innerHTML=Object.entries(people()).map(([k,x])=>`<div class="it" data-pid="${esc(k)}"><span class="dotc" style="--pc:${esc(x.color)}"></span><input type="text" class="nm" value="${esc(x.name)}" maxlength="20" aria-label="שם"><label style="font-size:12.5px;white-space:nowrap">הכנסות ל:</label><select class="ia" aria-label="לאן נכנסות ההכנסות"><option value="biz"${incAccOf(k)==='biz'?' selected':''}>🧰 עסקי</option><option value="home"${incAccOf(k)==='home'?' selected':''}>🏠 משותף</option></select>${k===me?'<span class="pill">אתה</span>':''}</div>`).join('')||'<div class="muted">עוד לא נבחר שם</div>';
   $('#meName').textContent=pName(me)||'…';
   $('#whoNote').textContent=cloud?(readOnly?'🔒 אתה מחובר עם הרשאת צפייה בלבד.':'☁️ הנתונים משותפים לכל מי שהקישור משותף איתו בהרשאת עריכה, ומתעדכנים אצל כולם תוך שניות. כל תנועה מסומנת בשם של מי שרשם אותה.'):'📱 כרגע הנתונים שמורים רק במכשיר הזה. כדי לסנכרן עם אסתר, פותחים את האפליקציה מהקישור ב-Claude (ההסבר למטה).';
 }
@@ -854,6 +860,7 @@ function applyTheme(){const t=S.settings.theme;if(t)document.documentElement.set
 function openForm(t,preset){
   const p=preset||{};
   form={editId:t?t.id:null,type:t?t.type:p.type||'expense',acc:t?t.acc:p.acc||(view==='all'?'home':view),cat:t?t.cat:p.cat||null,pay:t?t.pay||'credit':'credit'};
+  if(!t&&!p.acc&&form.type==='income'){form.acc=incAccOf(me);form.cat=form.cat||incCatFor(form.acc)}
   $('#mTitle').textContent=t?'עריכת תנועה':form.cat==='maaser'?'💝 רישום מעשר / צדקה':'תנועה חדשה';
   $('#iAmount').value=t?t.amount:(p.amount??'');
   $('#iDate').value=t?t.date:(cur===ym(today())?today():cur+'-01');
@@ -1068,7 +1075,8 @@ $('#addInst').onclick=()=>openForm(null,{type:'expense',inst:2});
 $('#mClose').onclick=closeForm;
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeForm()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ask').classList.contains('on'))closeForm()});
-$('#typeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;form.type=b.dataset.t;paintForm()});
+$('#typeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;form.type=b.dataset.t;
+  if(form.type==='income'&&!form.editId){form.acc=incAccOf(me);form.cat=incCatFor(form.acc);if(form.acc==='home'&&!$('#iDesc').value)$('#iDesc').value='משכורת '+(pName(me)||'')}paintForm()});
 $('#accChips').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;form.acc=b.dataset.acc;pickCard();paintForm()});
 $('#catChips').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;form.cat=b.dataset.cat;paintForm()});
 $('#payChips').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;form.pay=b.dataset.pay;paintForm()});
@@ -1130,11 +1138,11 @@ function askWho(){return new Promise(res=>{
   $('#joinPeople').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.pid)done(b.dataset.pid);else{$('#joinName').value=b.dataset.new;$('#joinGo').focus()}};
   $('#joinGo').onclick=()=>{const n=$('#joinName').value.trim().slice(0,20);if(!n){toast('בחר שם או כתוב שם');return}
     const ex=ids.find(i=>ppl[i].name===n);if(ex)return done(ex);
-    const pid=uid();S.people=Object.assign({},S.people,{[pid]:{name:n,color:PCOL[Object.keys(S.people||{}).length%PCOL.length]}});done(pid,true)};
+    const pid=uid();S.people=Object.assign({},S.people,{[pid]:{name:n,color:PCOL[Object.keys(S.people||{}).length%PCOL.length],incAcc:guessIncAcc(n)}});done(pid,true)};
 })}
 $('#meBtn').onclick=()=>showView('settings');
 $('#switchMe').onclick=()=>askWho().then(p=>{if(cloud&&!readOnly){memberPend=p;flush()}renderSettings()});
-$('#savePeople').onclick=()=>{const np=Object.assign({},S.people);$$('#peopleEdit [data-pid]').forEach(r=>{const k=r.dataset.pid,n=r.querySelector('.nm').value.trim();if(n&&np[k])np[k]=Object.assign({},np[k],{name:n})});S.people=np;save();render();renderSettings();toast('השמות נשמרו ✓')};
+$('#savePeople').onclick=()=>{const np=Object.assign({},S.people);$$('#peopleEdit [data-pid]').forEach(r=>{const k=r.dataset.pid,n=r.querySelector('.nm').value.trim();if(np[k])np[k]=Object.assign({},np[k],{name:n||np[k].name,incAcc:r.querySelector('.ia').value})});S.people=np;save();render();renderSettings();toast('השמות נשמרו ✓')};
 
 // ---------- shared household storage (claude.ai) ----------
 // meta doc: settings, cards, categories, people, members (account id -> person)
