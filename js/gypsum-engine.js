@@ -106,7 +106,8 @@
   }
 
   function maxHeightFor(layers, profileW, thk, spacing) {
-    const t = R.partition.maxHeight[layers >= 2 ? 2 : 1]?.[profileW]?.[thk >= 15 ? 15.9 : 12.5];
+    const MH = R.partition.maxHeight, two = layers >= 2;
+    const t = (typeof profileW === "string" ? (two ? MH.mfr2 : MH.mfr1)[profileW] : MH[two ? 2 : 1]?.[profileW])?.[thk >= 15 ? 15.9 : 12.5];
     if (!t) return null;
     return spacing <= 305 ? t[0] : spacing <= 406 ? t[1] : t[2];
   }
@@ -164,8 +165,12 @@
     const stdSec = o.wet ? C.secondaryWet : Math.min(C.secondary[o.thickness]?.perp || 500, C.secondary[o.thickness]?.perp || 500);
     const sec = Math.min(o.secondarySpacing || stdSec, 2000);
     if (o.secondarySpacing && o.secondarySpacing > stdSec) warnings.push(`מרחק משניים ${o.secondarySpacing} מ״מ גדול מהמותר בתקן (${stdSec} מ״מ) – הוחזר לערך התקני.`);
-    const S = Math.min(sec, stdSec);
-    const P = Math.min(o.primarySpacing || C.primaryMax, C.primaryMax);
+    let S = Math.min(sec, stdSec);
+    let P = Math.min(o.primarySpacing || C.primaryMax, C.primaryMax);
+    if (o.boardType === "perforated") {   // יצרן: משניים 312.5–333.5 לפי הדגם, ראשי F47 כל 750 (Cleaneo / CD-60)
+      S = Math.min(S, 333);
+      if (o.profile === "F47") P = Math.min(P, 750);
+    }
     const clr = C.fixtureClearance;
 
     // חורים שגדולים מהמרווח – דורשים חילוף (קיטוע פרופיל ומסגרת)
@@ -320,7 +325,9 @@
       notes.push("לוחות מחוררים: מותר מפגש 4 לוחות בנקודה אחת לפי הוראות היצרן (ת״י 1924 5.4 ג); מישק התפשטות כל ~10 מ׳ (5.10.1); איחוי וחיבור לפי מערכת היצרן (Cleaneo וכד׳).");
       if (W > 10000 || H > 10000) warnings.push("תקרת לוחות מחוררים ארוכה מ-10 מ׳ – נדרש מישק התפשטות (ת״י 1924 5.10.1).");
     }
-    if (o.boardType === "cement") notes.push("לוח צמנטי: ברגים ומרק ייעודיים של היצרן (לא ברגי גבס רגילים), סרט רשת עמיד אלקלי.");
+    if (o.boardType === "cement") notes.push("לוח צמנטי / סופרבורד: 12.7 או 15.9 מ״מ (כ-10.2–13.2 ק״ג/מ״ר), ברגים ומרק / טיח פולימרי ייעודיים, רשת אינטרגלס. בקיר חוץ – ניצב 70 (0.6 מ״מ), חסם אדים ובידוד לפי המתכנן.");
+    if (o.boardType === "perforated") notes.push("לוחות מחוררים: משניים כל ≤333 מ״מ (31.25–33.35 לפי דגם הלוח), ראשי F47 כל ≤750 מ״מ – לפי Cleaneo / טמבור CD-60.");
+    if (o.boardType === "fireplus" || o.boardType === "fireboard") notes.push("לוח עמיד אש מיוחד: מבנה המערכת (שכבות, ניצב, ברגים, פתחי שירות עמידי אש) חייב להתאים לבדיקת האש של היצרן לפי ת״י 931 – לא לשנות רכיבים.");
     if (o.boardType === "xray") notes.push("SafeBoard: לוח 62.5×240 ס״מ, 12.5 מ״מ, 17 ק״ג/מ״ר, ליבת בריום סולפט (ללא עופרת); מספר הלוחות לפי מתח המכשיר ודרישת הממונה על הקרינה; שפכטל SafeBoard ייעודי.");
     notes.push("פס איטום והפרדה (קופריבנד) לכל אורך המסילה ההיקפית, בכל מפגש של השלד עם קיר או תקרה בנויה.");
     if (o.dropCm < 8) warnings.push("הנמכה של פחות מ-8 ס״מ – אין מספיק מקום לשתי וערב + ספוטים. שקלו פרופיל ישיר (F47 עם מתלה ישיר).");
@@ -405,10 +412,17 @@
 
     // בדיקת גובה (טבלה 1)
     if (!o.lining) {
-      const mh = maxHeightFor(o.layers, prof.width, o.thickness, S);
+      const mh = maxHeightFor(o.layers, prof.hKey || prof.width, o.thickness, S);
       if (mh && Hh > mh) {
-        const better = ["C50", "C70", "C100"].find(k => (maxHeightFor(o.layers, R.profiles[k].width, o.thickness, S) || 0) >= Hh);
-        warnings.push(`גובה ${Hh / 10} ס״מ חורג מהמקסימום לפרופיל ${prof.width} (${mh / 10} ס״מ, טבלה 1).` + (better ? ` מומלץ ${R.profiles[better].name}.` : " נדרש תכנון סטטי ייחודי."));
+        const better = ["C50", "C70", "C100", "C100h", "C150h"].find(k => (maxHeightFor(o.layers, R.profiles[k].hKey || R.profiles[k].width, o.thickness, S) || 0) >= Hh);
+        let alt = "";
+        if (!better) {   // אולי מספיק לצופף ניצבים
+          for (const sp of [406, 305]) {
+            const k = ["C50", "C70", "C100", "C100h", "C150h"].find(k => (maxHeightFor(o.layers, R.profiles[k].hKey || R.profiles[k].width, o.thickness, sp) || 0) >= Hh);
+            if (k) { alt = ` אפשרות: ${R.profiles[k].name} עם ניצבים כל ${sp} מ״מ${R.profiles[k].hKey ? " (טבלת יצרן – טמבור, לאמת מול הספק)" : ""}.`; break; }
+          }
+        }
+        warnings.push(`גובה ${Hh / 10} ס״מ חורג מהמקסימום ל${prof.name} (${mh / 10} ס״מ, ${prof.hKey ? "טבלת יצרן – טמבור" : "ת״י 1924 טבלה 1"}).` + (better ? ` מומלץ ${R.profiles[better].name}.` : alt || " נדרש תכנון סטטי ייחודי (מהנדס)."));
       }
     }
     const studLen = Hh - P.studShorter;
@@ -593,6 +607,8 @@
       notes.push("חדר רטוב: ניצבים כל ≤406 מ״מ, עיגון מסילות כל ≤300 מ״מ, פס איטום רציף מיחידה אחת, חגורת הגבהה, אטימת המרווח התחתון של הלוחות.");
       bill.add("sealant", "חומר איטום לתחתית הלוחות (סיליקון / פוליאוריטן)", "שפופרת", ceil(L / 4000) * o.sides);
     }
+    if (o.boardType === "fireplus") notes.push("FirePlus 2.0 (אורבונד): 22 מ״מ, 1200 מ״מ רוחב, 16.5 ק״ג/מ״ר, A1 לפי ת״י 755; שני לוחות מצד אחד – יציבות ושלמות 180 דק׳, בידוד 130 דק׳ (ת״י 931). להרכיב לפי פרט הבדיקה של היצרן.");
+    if (o.boardType === "fireboard") notes.push("Fireboard (אורבונד): 15 / 20 / 25 מ״מ (11 / 15 / 19 ק״ג/מ״ר), 1.2×2.25 מ׳, VI.4.4 לפי ת״י 755; לוח 25 אחד מצד אחד – יציבות ושלמות מעל 120 דק׳; שני לוחות 25 – 150 דק׳. פתחי שירות עמידי אש עד 120 דק׳.");
     if (o.boardType === "xray") {
       const t = R.board.types.xray.leadEq, i90 = t.kv.indexOf(90), n = Math.min(4, Math.max(1, o.layers));
       notes.push(`SafeBoard: ${n} לוח/ות בכל צד ≈ ${t.rows[n][i90]} מ״מ עופרת ב-90kV (מרפאת שיניים: 2 לוחות ≈ 1.4 מ״מ עופרת). הלוח התחתון בגובה 40 ס״מ לפחות, הסטת מישקים בין השכבות, איחוי בשפכטל SafeBoard. מערכת K131: F30 בשכבה אחת, F90 בשתיים.`);

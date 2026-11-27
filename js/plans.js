@@ -597,7 +597,7 @@
       ["strThk", "STR – דגם / גובה H", "sel", { "H7": "STR H=7 מ״מ", "H13": "STR H=13 מ״מ", "H20": "STR H=20 מ״מ", "H25": "STR H=25 מ״מ", "1.2": "עובי 1.2", "2.0": "עובי 2.0", "אחר": "אחר – לפי התוכנית" }],
       ["strColor", "צבע / גימור הניתוק", "sel", { "לבן": "לבן", "שחור": "שחור", "אנודייז כסף מט": "אנודייז (כסף מט)", "RAL": "גוון RAL לפי הזמנה" }],
       ["shadowModel", "פס ניתוק – דגם", "sel", { "TAF H13": "TAF H=13", "TAF H25": "TAF H=25", "OM H8": "אומגה OM H=8", "OM H13": "אומגה OM H=13", "OM H25": "אומגה OM H=25", "TAFG 12×12": "TAFG פרופיל ת׳ 12×12 (ג.ק.)", "אחר": "אחר – לפי התוכנית" }],
-      ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ" }],
+      ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ", 20: "20 מ״מ (Fireboard)", 22: "22 מ״מ (FirePlus)", 25: "25 מ״מ (Fireboard)" }],
       ["layers", "שכבות לוחות", "sel", { 1: "שכבה אחת", 2: "שתי שכבות" }],
       ["boardType", "סוג לוח", "sel", Object.fromEntries(Object.entries(R.board.types).map(([k, v]) => [k, v.name]))],
       ["boardLen", "אורך לוח", "sel", Object.fromEntries(R.board.lengths.map(l => [l, `120×${l / 10}`]))],
@@ -611,10 +611,10 @@
     wall: [
       ["name", "שם", "text"],
       ["height", "גובה (מ״מ)", "num", 10],
-      ["profile", "פרופיל", "sel", { C50: "ניצב 50", C70: "ניצב 70", C100: "ניצב 100" }],
+      ["profile", "פרופיל", "sel", { C50: "ניצב 50", C70: "ניצב 70", C100: "ניצב 100", C100h: "ניצב 100 עובי 0.8 (גבוה)", C150h: "ניצב 150 עובי 0.8 (גבוה)" }],
       ["layers", "שכבות בכל צד", "sel", { 1: "שכבה אחת", 2: "שתי שכבות" }],
       ["sides", "צדדים מחופים", "sel", { 2: "שני צדדים", 1: "צד אחד" }],
-      ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ" }],
+      ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ", 20: "20 מ״מ (Fireboard)", 22: "22 מ״מ (FirePlus)", 25: "25 מ״מ (Fireboard)" }],
       ["boardType", "סוג לוח", "sel", Object.fromEntries(Object.entries(R.board.types).map(([k, v]) => [k, v.name]))],
       ["boardLen", "אורך לוח", "sel", Object.fromEntries(R.board.lengths.map(l => [l, `120×${l / 10}`]))],
       ["spacing", "מרחק ניצבים (מ״מ, 0 = לפי התקן)", "num", 10],
@@ -751,10 +751,10 @@
       return `<table class="gp-alt"><tr><th>אפשרות</th><th>לוחות</th><th>פרופילים</th><th>בעיות</th></tr>${alts.map(a => `<tr data-alt='${JSON.stringify({ dir: a.dir })}' class="${cur && cur.swap === a.r.swap ? "is-on" : ""}"><td>${a.name}</td><td>${a.r.stats.boards}</td><td>${a.prof}</td><td>${a.bad ? `<span class="gp-badge bad">${a.bad}</span>` : "✓"}</td></tr>`).join("")}</table>`;
     }
     const g = wallGeom(it);
-    const profs = it.opts.lining ? ["F47", "C60", "C50"] : ["C50", "C70", "C100"];
+    const profs = it.opts.lining ? ["F47", "C60", "C50"] : ["C50", "C70", "C100", "C100h", "C150h"];
     const rows = profs.flatMap(pr => [1, 2].map(layers => {
       const r = E.wall({ L: g.len * 1000, elements: it.elements.map(e => ({ ...e, pos: e.pos * 1000 })), opts: { ...it.opts, profile: pr, layers, ruleset: S.ruleset } });
-      const mh = it.opts.lining ? null : E.maxHeightFor(layers, R.profiles[pr].width, it.opts.thickness, r.S);
+      const mh = it.opts.lining ? null : E.maxHeightFor(layers, R.profiles[pr].hKey || R.profiles[pr].width, it.opts.thickness, r.S);
       return { pr, layers, r, ok: !mh || it.opts.height <= mh, mh };
     }));
     return `<table class="gp-alt"><tr><th>פרופיל</th><th>שכבות</th><th>גובה מקס׳</th><th>לוחות</th></tr>${rows.map(a => `<tr data-alt='${JSON.stringify({ profile: a.pr, layers: a.layers })}' class="${it.opts.profile === a.pr && it.opts.layers === a.layers ? "is-on" : ""}"><td>${R.profiles[a.pr].name.split(" (")[0]}</td><td>${a.layers}</td><td>${a.mh ? `<span class="gp-badge ${a.ok ? "" : "bad"}">${a.mh / 10} ס״מ</span>` : "–"}</td><td>${a.r.stats.boards}</td></tr>`).join("")}</table>`;

@@ -137,7 +137,7 @@ function render(p, results, o) {
       }
     } else {
       const dx = it.b.x - it.a.x, dz = it.b.y - it.a.y, len = Math.hypot(dx, dz);
-      const prof = { C50: .05, C70: .07, C100: .1, F47: .047, C60: .06 }[it.opts.profile] || .07;
+      const prof = { C50: .05, C70: .07, C100: .1, C100h: .1, C150h: .15, F47: .047, C60: .06 }[it.opts.profile] || .07;
       const t = prof + it.opts.layers * (it.opts.thickness / 1000) * (it.opts.lining ? 1 : it.opts.sides) + (it.opts.lining ? .02 : 0);
       const h = Math.min((it.opts.height || H * 1000) / 1000, H);
       const ang = Math.atan2(dz, dx);
