@@ -193,7 +193,20 @@ function render(p, results, o) {
 }
 
 /* ---------- מצב טיול בבית (גובה עיניים) ---------- */
-const walk = { on: false, placed: false, yaw: 0, pitch: 0, keys: {}, btn: {}, walls: [], rooms: [], bounds: null, H: 2.7 };
+const walk = { on: false, placed: false, yaw: 0, pitch: 0, fov: 75, keys: {}, btn: {}, walls: [], rooms: [], bounds: null, H: 2.7 };
+function setFov(v) { walk.fov = Math.max(30, Math.min(110, v)); camera.fov = walk.fov; camera.updateProjectionMatrix(); }
+// מבט מהפינה: עומדים בפינת החדר הנוכחי ומסתכלים לפינה הנגדית בזווית רחבה
+function cornerView() {
+  const p = camera.position;
+  const q = walk.rooms.find(r => p.x >= r.x && p.x <= r.x + r.w && p.z >= r.z && p.z <= r.z + r.h) || [...walk.rooms].sort((a, b) => b.w * b.h - a.w * a.h)[0];
+  if (!q) return;
+  const corners = [[q.x, q.z], [q.x + q.w, q.z], [q.x, q.z + q.h], [q.x + q.w, q.z + q.h]];
+  const [cx, cz] = corners.sort((a, b) => Math.hypot(a[0] - p.x, a[1] - p.z) - Math.hypot(b[0] - p.x, b[1] - p.z))[0];
+  const ix = cx === q.x ? 0.3 : -0.3, iz = cz === q.z ? 0.3 : -0.3;
+  camera.position.set(cx + ix, 1.75, cz + iz);
+  const tx = q.x + q.w / 2 - (cx + ix), tz = q.z + q.h / 2 - (cz + iz);
+  walk.yaw = Math.atan2(-tx, -tz); walk.pitch = 0.22; applyLook(); setFov(95);
+}
 const EYE = 1.6, SPEED = 1.4, R = 0.25;
 function placeWalker() {
   const big = [...walk.rooms].sort((a, b) => b.w * b.h - a.w * a.h)[0];
@@ -229,7 +242,7 @@ function stepWalk(dt) {
 function setWalk(on) {
   walk.on = on;
   viewMode = on ? "walk" : "orbit";
-  camera.fov = 50; camera.updateProjectionMatrix();
+  camera.fov = on ? walk.fov : 50; camera.updateProjectionMatrix();
   rerender();
   const mm = host.querySelector(".w3-map"); if (mm) mm.hidden = !on;
   controls.enabled = !on;
@@ -246,6 +259,8 @@ function setupWalk() {
   .w3-bar button,.w3-ui button{pointer-events:auto;background:rgba(18,18,17,.82);color:#f4f0e8;border:1px solid #c9a55c;border-radius:20px;padding:8px 14px;font:600 14px Assistant,system-ui,sans-serif;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
   .w3-ui{position:absolute;inset:auto 10px 10px 10px;display:flex;justify-content:space-between;align-items:flex-end;z-index:3;pointer-events:none}
   .w3-ui[hidden]{display:none}
+  .w3-zoom{display:flex;flex-direction:column;gap:6px;align-self:center;margin-inline-start:auto;margin-inline-end:10px}
+  .w3-zoom button{border-radius:12px;min-width:52px;font-size:18px}.w3-zoom [data-z=corner]{font-size:13px}
   .w3-pad{direction:ltr;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px}
   .w3-pad button{padding:0;font-size:20px;border-radius:12px}
   .w3-hint{pointer-events:none;color:#f4f0e8;background:rgba(18,18,17,.6);border-radius:10px;padding:6px 10px;font:400 12.5px Assistant,system-ui,sans-serif;max-width:46%}
@@ -258,7 +273,8 @@ function setupWalk() {
   const bar = document.createElement("div"); bar.className = "w3-bar";
   bar.innerHTML = `<button type="button" class="w3-toggle">🚶 טיול בבית</button><button type="button" class="w3-top">🗺 מבט על (תוכנית)</button><button type="button" class="w3-up">👆 להסתכל על התקרה</button><button type="button" class="w3-fs">⛶ מסך מלא</button>`;
   const ui = document.createElement("div"); ui.className = "w3-ui"; ui.hidden = true;
-  ui.innerHTML = `<div class="w3-hint">גוררים על המסך כדי להסתכל · כפתורים כדי ללכת · במחשב: חצים / WASD</div>
+  ui.innerHTML = `<div class="w3-hint">גוררים כדי להסתכל · צביטה / גלגלת = זום · כפתורים כדי ללכת · במחשב: חצים / WASD</div>
+    <div class="w3-zoom"><button data-z="in" aria-label="זום פנימה">＋</button><button data-z="out" aria-label="זום החוצה (רחב)">－</button><button data-z="corner">📐 מבט מהפינה</button></div>
     <div class="w3-pad"><button data-b="tl" aria-label="פנייה שמאלה">↶</button><button data-b="f" aria-label="קדימה">▲</button><button data-b="tr" aria-label="פנייה ימינה">↷</button>
     <button data-b="l" aria-label="צעד שמאלה">◀</button><button data-b="b" aria-label="אחורה">▼</button><button data-b="r" aria-label="צעד ימינה">▶</button></div>`;
   const map = document.createElement("canvas"); map.className = "w3-map"; map.width = 360; map.height = 360; map.hidden = true;
@@ -278,16 +294,29 @@ function setupWalk() {
   };
   bar.querySelector(".w3-up").onclick = () => { if (!walk.on) setWalk(true); walk.pitch = walk.pitch > 0.6 ? 0.1 : 0.95; applyLook(); };
   bar.querySelector(".w3-fs").onclick = () => { const d = document; (d.fullscreenElement ? d.exitFullscreen() : host.requestFullscreen?.())?.catch?.(() => {}); };
+  ui.querySelector("[data-z=in]").onclick = () => setFov(walk.fov - 10);
+  ui.querySelector("[data-z=out]").onclick = () => setFov(walk.fov + 10);
+  ui.querySelector("[data-z=corner]").onclick = cornerView;
   ui.querySelectorAll("[data-b]").forEach(b => {
     const k = b.dataset.b;
     const on = e => { e.preventDefault(); walk.btn[k] = true; }, off = () => { walk.btn[k] = false; };
     b.addEventListener("pointerdown", on); b.addEventListener("pointerup", off); b.addEventListener("pointerleave", off); b.addEventListener("pointercancel", off);
   });
-  // מבט בגרירה
-  const el = renderer.domElement; let drag = null;
-  el.addEventListener("pointerdown", e => { if (walk.on) { drag = { x: e.clientX, y: e.clientY, yaw: walk.yaw, pitch: walk.pitch }; el.setPointerCapture(e.pointerId); } });
+  // מבט בגרירה, זום בגלגלת / צביטה
+  const el = renderer.domElement; let drag = null; const touches = new Map(); let pinch = null;
+  el.addEventListener("wheel", e => { if (!walk.on) return; e.preventDefault(); setFov(walk.fov + e.deltaY * 0.04); }, { passive: false });
+  el.addEventListener("pointerdown", e => {
+    if (!walk.on) return; touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), fov: walk.fov }; drag = null; }
+  });
   el.addEventListener("pointermove", e => {
-    if (!drag || !walk.on) return;
+    if (!touches.has(e.pointerId)) return; touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pinch && touches.size === 2) { const [a, b] = [...touches.values()]; setFov(pinch.fov * pinch.d / Math.max(20, Math.hypot(a[0] - b[0], a[1] - b[1]))); }
+  });
+  ["pointerup", "pointercancel"].forEach(t => el.addEventListener(t, e => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; }));
+  el.addEventListener("pointerdown", e => { if (walk.on && touches.size < 2) { drag = { x: e.clientX, y: e.clientY, yaw: walk.yaw, pitch: walk.pitch }; el.setPointerCapture(e.pointerId); } });
+  el.addEventListener("pointermove", e => {
+    if (!drag || !walk.on || pinch) return;
     walk.yaw = drag.yaw + (e.clientX - drag.x) * 0.005;
     walk.pitch = Math.max(-1.2, Math.min(1.45, drag.pitch + (e.clientY - drag.y) * 0.005));
     applyLook();
@@ -345,5 +374,5 @@ function drawMap() {
   c.fillStyle = "#2c6fb0"; c.beginPath(); c.arc(px, pz, 9, 0, 7); c.fill(); c.strokeStyle = "#fff"; c.lineWidth = 3; c.stroke();
 }
 
-window.GP3D = { render, topView, setWalk: on => setWalk(on), teleport: (x, z, yaw) => { camera.position.set(x, EYE, z); walk.yaw = yaw; applyLook(); }, walkState: () => ({ on: walk.on, x: camera.position.x, z: camera.position.z, pitch: walk.pitch }) };
+window.GP3D = { render, topView, setWalk: on => setWalk(on), teleport: (x, z, yaw) => { camera.position.set(x, EYE, z); walk.yaw = yaw; applyLook(); }, walkState: () => ({ fov: walk.fov, on: walk.on, x: camera.position.x, z: camera.position.z, pitch: walk.pitch }) };
 window.dispatchEvent(new Event("gp3d-ready"));
