@@ -329,7 +329,7 @@
     bill.add("track-" + trackKey, R.profiles[trackKey].name + " – 3 מ׳", "יח׳", pPer.count);
     const per = C.perimeter[o.perimeter] || C.perimeter.none;
     if (per.item) {
-      const det = o.perimeter === "str" ? ` (ניתוק ${o.strGap || 6} מ״מ, עובי ${o.strThk || "לפי התוכנית"})` : "";
+      const det = o.perimeter === "str" ? ` (ניתוק ${o.strGap || 6} מ״מ, ${o.strThk || "לפי התוכנית"}, ${o.strColor || "לבן"})` : "";
       bill.add("perim-" + o.perimeter + det, per.item + det, "מ׳", perim / 1000 * 1.05); notes.push(per.note);
     }
     // אביזרים שדורשים הכנה מוקדמת בקונסטרוקציה (רונה, פס צבירה, פרופיל מגנטי שקוע)
