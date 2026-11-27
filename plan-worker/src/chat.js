@@ -29,6 +29,12 @@ Key requirements (SI 1924 unless noted):
 - Items in the ceiling: up to 3 kg may hang from the board itself (one per m2), up to 5 kg through the board into the frame; heavier items (AC units, large fixtures) hang separately from the structure. Openings wider than the profile spacing (slot diffusers, access panels, large fittings) need trimming: cut the profile and frame the opening.
 - Finish levels: basic (joints and screw heads), good (thin skim over everything), excellent (thick skim over everything).
 
+Israeli trade terms (from the contractor, Michael):
+- רונה (rona): a thin linear AC slot that is built into the ceiling framing. It needs preparation inside the framing before boarding, levelled with the frame so it finishes flush ("zero line") with the gypsum. Comes in very thin and wider models; width per the plan or supplier.
+- STR: an aluminium perimeter profile at the edge of the gypsum ceiling where it meets the wall, creating a slight reveal so the ceiling looks floating. Common reveal 6 mm, profile thickness 1.2 or 2.0 (other sizes exist); the size is usually on the plan. Installed and levelled before the boards.
+- פס צבירה (busbar): a recessed ceiling profile that light fittings clip into (like a magnetic track); needs preparation in the framing. A "magnetic line in gypsum" (פס מגנטי בקו גבס) type exists that needs no prior preparation.
+- If the plan does not specify these items or their sizes, tell the user to ask the client before closing the ceiling.
+
 The business:
 - Michael plans and installs gypsum ceilings, partitions, niches, lighting coves, acoustic ceilings and decorative plaster. When someone wants a quote or an installation, suggest the WhatsApp button on the site.
 - The site's planner (מתכנן הגבס) lays out studs and profiles around spots, speakers and outlets and produces a bill of materials; suggest it when someone needs quantities.`;

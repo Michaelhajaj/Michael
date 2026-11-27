@@ -516,6 +516,12 @@
     }
     const f = { id: uid(), kind, x: round2(w[0] - it.x), y: round2(w[1] - it.y), kg: spec.kg };
     if (spec.d) f.d = spec.askD && S.spotD ? S.spotD : spec.d; else { f.w = spec.w; f.h = spec.h; }
+    if (spec.ask) {   // מידה שחייבת להגיע מהתוכנית / מהלקוח
+      const v = parseFloat(prompt(spec.ask + "\n(אם לא מופיע בתוכנית – לשאול את הלקוח)", String(spec.h)));
+      if (v > 0) f.h = Math.round(v);
+      const len = parseFloat(prompt("אורך (ס״מ)", String(spec.w / 10)));
+      if (len > 0) f.w = Math.round(len * 10);
+    }
     it.fixtures.push(f); S.sel = { item: it.id, fix: f.id }; computeItem(it); changed();
   }
   function addElement(w) {
@@ -586,7 +592,9 @@
       ["w", "אורך (מ׳)", "num", 0.01], ["h", "רוחב (מ׳)", "num", 0.01],
       ["dropCm", "הנמכה (ס״מ)", "num", 1],
       ["profile", "מערכת התקרה", "sel", { F47: "F47 שתי וערב (תלויה)", C60: "C60 שתי וערב (תלויה)", C50: "זקפים C50 בין קירות – עד 1.70 מ׳", C70: "זקפים C70 בין קירות – עד 2.00 מ׳", C100: "זקפים C100 בין קירות – עד 2.40 מ׳" }],
-      ["perimeter", "פרט היקפי", "sel", { none: "מסילה רגילה", shadow: "פרופיל ניתוק (צל)", cove: "קרניז לד נסתר" }],
+      ["perimeter", "פרט היקפי", "sel", { none: "מסילה רגילה", str: "STR – תקרה מרחפת (אלומיניום)", shadow: "פרופיל ניתוק (צל)", cove: "קרניז לד נסתר" }],
+      ["strGap", "STR – גודל הניתוק (מ״מ)", "num", 1],
+      ["strThk", "STR – עובי / דגם", "sel", { "1.2": "1.2", "2.0": "2.0", "אחר": "אחר – לפי התוכנית" }],
       ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ" }],
       ["layers", "שכבות לוחות", "sel", { 1: "שכבה אחת", 2: "שתי שכבות" }],
       ["boardType", "סוג לוח", "sel", Object.fromEntries(Object.entries(R.board.types).map(([k, v]) => [k, v.name]))],
@@ -674,7 +682,7 @@
     const kind = it.type === "ceiling" ? "ceiling" : it.opts.lining ? "lining" : "wall";
     const res = S.results[it.id];
     let html = `<h4>${kind === "ceiling" ? "תקרת גבס" : kind === "lining" ? "חיפוי קיר" : "מחיצת גבס"}</h4><p class="gp-sub">כל הערכים פתוחים לשינוי. ערך שחורג מהתקן יוחזר לערך התקני עם הערה.</p>`;
-    html += fieldDefs[kind].map(d => fieldHtml(d, d[0] === "w" || d[0] === "h" ? it[d[0]] : it.opts[d[0]])).join("");
+    html += fieldDefs[kind].filter(d => !d[0].startsWith("str") || it.opts.perimeter === "str").map(d => fieldHtml(d, d[0] === "w" || d[0] === "h" ? it[d[0]] : it.opts[d[0]])).join("");
     if (res) html += `<p class="gp-hint">${kind === "ceiling" ? `משניים כל ${res.sec} מ״מ (תקן: ${res.stdSec}), ראשיים כל ≤${res.pri}, מתלים כל ${res.hangerSpacing} מ״מ` : `ניצבים כל ≤${res.S} מ״מ (תקן: ${res.stdS}), אורך ניצב ${res.studLen} מ״מ`}</p>`;
     // alternatives
     html += `<hr><p class="gp-sub">השוואת אפשרויות (לחצו לבחירה)</p>` + altTable(it);

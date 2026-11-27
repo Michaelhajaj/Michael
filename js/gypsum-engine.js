@@ -140,7 +140,7 @@
      ========================================================= */
   function ceiling(input) {
     const o = Object.assign({ thickness: 12.5, layers: 1, boardType: "regular", wet: false, boardLen: 2600, dir: "auto",
-      profile: "F47", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none" }, input.opts || {});
+      profile: "F47", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none", strGap: 6, strThk: "1.2" }, input.opts || {});
     if (o.wet && o.boardType === "regular") o.boardType = "water";
     if (o.wet && o.boardType === "fire") o.boardType = "firewater";
     const R = rulesFor(o.ruleset);
@@ -291,6 +291,7 @@
     // בדיקת חורים על תפרים
     fixtures.forEach(f => {
       if (f.status !== "ok") return;
+      if (Math.max(f.fw, f.fh) > 1000) return;   // פס ארוך חוצה תפרים בהכרח – הלוחות נחתכים סביבו
       const onJoint = boards.some(b => b.layer === o.layers && ((Math.abs(b.y - f.y) < f.fh / 2 + 10 && b.y > 0) || (Math.abs(b.x - f.x) < f.fw / 2 + 10 && b.x > 0)) &&
         f.x > b.x - f.fw && f.x < b.x + b.w + f.fw && f.y > b.y - f.fh && f.y < b.y + b.h + f.fh);
       if (onJoint) { f.status = "joint"; f.msg = "נופל על תפר לוחות – מומלץ להזיז 5–10 ס״מ"; }
@@ -327,7 +328,17 @@
     bill.add("prof-" + o.profile, prof.name + ` – ${pSec.stock / 1000} מ׳`, "יח׳", pSec.count + pPri.count + pTrim.count, studSys ? "זקפי תקרה + חילופים" : "משניים + ראשיים + חילופים");
     bill.add("track-" + trackKey, R.profiles[trackKey].name + " – 3 מ׳", "יח׳", pPer.count);
     const per = C.perimeter[o.perimeter] || C.perimeter.none;
-    if (per.item) { bill.add("perim-" + o.perimeter, per.item, "מ׳", perim / 1000 * 1.05); notes.push(per.note); }
+    if (per.item) {
+      const det = o.perimeter === "str" ? ` (ניתוק ${o.strGap || 6} מ״מ, עובי ${o.strThk || "לפי התוכנית"})` : "";
+      bill.add("perim-" + o.perimeter + det, per.item + det, "מ׳", perim / 1000 * 1.05); notes.push(per.note);
+    }
+    // אביזרים שדורשים הכנה מוקדמת בקונסטרוקציה (רונה, פס צבירה, פרופיל מגנטי שקוע)
+    fx.filter(f => (R.fixtures[f.kind] || {}).prep).forEach(f => {
+      const sp = R.fixtures[f.kind], len = Math.max(f.fw, f.fh);
+      bill.add("prep-" + f.kind, `הכנה בקונסטרוקציה ל${sp.name.split(" (")[0]} (פרופילים לאורך + פילוס)`, "מ׳", 2 * len / 1000 * 1.1);
+      bill.add("metal", R.screws.metal, "יח׳", 8);
+      warnings.push(`${sp.name} (${Math.round(len / 10)} ס״מ, רוחב ${Math.round(Math.min(f.fw, f.fh))} מ״מ): דורש הכנה מוקדמת בקונסטרוקציה לפני סגירת הגבס – לתאם עם הלקוח / היועץ אם לא מופיע בתוכנית.`);
+    });
     fx.forEach(f => { const sp = R.fixtures[f.kind]; if (sp?.tip && !notes.includes(sp.name + ": " + sp.tip)) notes.push(sp.name + ": " + sp.tip); });
     if (studSys) bill.add("angle-trim", "זוויתן / מחבר לחילופים ולשורות תמיכה", "יח׳", trimmed.length * 4 + primaries.length * secondaries.length);
     else bill.add("cross-" + o.profile, `מחבר שתי וערב (צלב) ${o.profile}`, "יח׳", crosses + trimmed.length * 4);
