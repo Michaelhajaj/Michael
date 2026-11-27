@@ -3,7 +3,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const host = document.getElementById("view3d");
-let renderer, scene, camera, controls, root, lastKey = "", texCache = {};
+let renderer, scene, camera, controls, root, lastKey = "", texCache = {}, viewMode = "orbit", lastArgs = null;
+function rerender() { if (lastArgs) render(...lastArgs); }
 
 function kelvin(k) { return k <= 3000 ? 0xffd2a1 : k <= 4000 ? 0xfff1e0 : 0xe8f0ff; }
 
@@ -28,7 +29,7 @@ function init() {
   (function loop(t) {
     requestAnimationFrame(loop);
     const dt = Math.min(0.05, ((t || performance.now()) - last) / 1000); last = t || performance.now();
-    if (walk.on) stepWalk(dt); else controls.update();
+    if (walk.on) { stepWalk(dt); drawMap(); } else controls.update();
     renderer.render(scene, camera);
   })();
 }
@@ -50,7 +51,8 @@ function planTexture(p) {
 function render(p, results, o) {
   if (!p || !p.items.length) return;
   if (!renderer) init();
-  const key = JSON.stringify([p.id, p.items, p.roomH, p.mpp, o]);
+  lastArgs = [p, results, o];
+  const key = JSON.stringify([p.id, p.items, p.roomH, p.mpp, o, viewMode]);
   if (key === lastKey) return;
   const firstFrame = !lastKey || !lastKey.startsWith(JSON.stringify([p.id]).slice(0, -1));
   lastKey = key;
@@ -58,7 +60,8 @@ function render(p, results, o) {
   root = new THREE.Group(); scene.add(root);
   const H = p.roomH || 2.7;
   const wallMat = new THREE.MeshStandardMaterial({ color: o.wall, roughness: .9 });
-  const ceilMat = new THREE.MeshStandardMaterial({ color: o.ceil, roughness: .85, transparent: o.xray, opacity: o.xray ? .18 : 1,
+  const seeThrough = o.xray || viewMode === "top";
+  const ceilMat = new THREE.MeshStandardMaterial({ color: o.ceil, roughness: .85, transparent: seeThrough, opacity: o.xray ? .18 : viewMode === "top" ? .35 : 1, depthWrite: !seeThrough,
     emissive: new THREE.Color(o.ceil).multiplyScalar(0.22) });
   const lightCol = kelvin(o.kelvin);
 
@@ -71,9 +74,9 @@ function render(p, results, o) {
   // floor (with plan texture)
   const tex = planTexture(p);
   let floor;
-  if (tex && p.imgW) {
+  if (tex && p.imgW && viewMode !== "walk") {
     const fw = p.imgW * p.mpp, fh = p.imgH * p.mpp;
-    floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), new THREE.MeshStandardMaterial({ map: tex, color: o.floor, roughness: 1 }));
+    floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 1 }));
     floor.position.set(fw / 2, 0, fh / 2);
   } else {
     floor = new THREE.Mesh(new THREE.PlaneGeometry(span + 4, span + 4), new THREE.MeshStandardMaterial({ color: o.floor, roughness: .95 }));
@@ -95,6 +98,9 @@ function render(p, results, o) {
       const inner = new THREE.MeshStandardMaterial({ color: o.wall, roughness: .92, side: THREE.BackSide });
       const room = new THREE.Mesh(new THREE.BoxGeometry(it.w, H, it.h), [inner, inner, hidden, hidden, inner, inner]);
       room.position.set(it.x + it.w / 2, H / 2, it.y + it.h / 2); room.receiveShadow = true; root.add(room);
+      const skirt = new THREE.MeshStandardMaterial({ color: 0x5e5850, roughness: .6 });
+      [[it.w, 0.012, it.x + it.w / 2, it.y + 0.006], [it.w, 0.012, it.x + it.w / 2, it.y + it.h - 0.006], [0.012, it.h, it.x + 0.006, it.y + it.h / 2], [0.012, it.h, it.x + it.w - 0.006, it.y + it.h / 2]]
+        .forEach(([w, d, x, z]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, d), skirt); m.position.set(x, 0.04, z); root.add(m); });
       const slab = new THREE.Mesh(new THREE.BoxGeometry(it.w, 0.0125 * it.opts.layers, it.h), ceilMat);
       slab.position.set(it.x + it.w / 2, y, it.y + it.h / 2); root.add(slab);
       // bulkhead edge (סינר)
@@ -171,7 +177,7 @@ function render(p, results, o) {
     return { ax: it.a.x, az: it.a.y, ux: dx / len, uz: dz / len, len,
       doors: it.elements.filter(e => window.GYPSUM_RULES?.wallElements[e.kind]?.type === "door").map(e => [e.pos - e.w / 2000, e.pos + e.w / 2000]) };
   });
-  walk.rooms = p.items.filter(it => it.type === "ceiling").map(it => ({ x: it.x, z: it.y, w: it.w, h: it.h, ceilY: H - (it.opts.dropCm || 15) / 100 }));
+  walk.rooms = p.items.filter(it => it.type === "ceiling").map(it => ({ x: it.x, z: it.y, w: it.w, h: it.h, name: it.opts.name || "", ceilY: H - (it.opts.dropCm || 15) / 100 }));
   walk.H = H;
   if (walk.on && !walk.placed) placeWalker();
   if (firstFrame) {
@@ -222,6 +228,10 @@ function stepWalk(dt) {
 }
 function setWalk(on) {
   walk.on = on;
+  viewMode = on ? "walk" : "orbit";
+  camera.fov = 50; camera.updateProjectionMatrix();
+  rerender();
+  const mm = host.querySelector(".w3-map"); if (mm) mm.hidden = !on;
   controls.enabled = !on;
   const ui = host.querySelector(".w3-ui");
   if (ui) ui.hidden = !on;
@@ -239,17 +249,33 @@ function setupWalk() {
   .w3-pad{direction:ltr;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px}
   .w3-pad button{padding:0;font-size:20px;border-radius:12px}
   .w3-hint{pointer-events:none;color:#f4f0e8;background:rgba(18,18,17,.6);border-radius:10px;padding:6px 10px;font:400 12.5px Assistant,system-ui,sans-serif;max-width:46%}
-  .gp-3d:fullscreen{height:100vh}`;
+  .gp-3d:fullscreen{height:100vh}
+  .w3-map{position:absolute;top:56px;left:10px;width:180px;height:180px;z-index:3;background:rgba(250,248,243,.92);border:1px solid #c9a55c;border-radius:12px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .w3-map[hidden]{display:none}
+  @media (max-width:560px){.w3-map{width:130px;height:130px}}`;
   document.head.appendChild(css);
   host.style.position = "relative";
   const bar = document.createElement("div"); bar.className = "w3-bar";
-  bar.innerHTML = `<button type="button" class="w3-toggle">🚶 טיול בבית</button><button type="button" class="w3-up">👆 להסתכל על התקרה</button><button type="button" class="w3-fs">⛶ מסך מלא</button>`;
+  bar.innerHTML = `<button type="button" class="w3-toggle">🚶 טיול בבית</button><button type="button" class="w3-top">🗺 מבט על (תוכנית)</button><button type="button" class="w3-up">👆 להסתכל על התקרה</button><button type="button" class="w3-fs">⛶ מסך מלא</button>`;
   const ui = document.createElement("div"); ui.className = "w3-ui"; ui.hidden = true;
   ui.innerHTML = `<div class="w3-hint">גוררים על המסך כדי להסתכל · כפתורים כדי ללכת · במחשב: חצים / WASD</div>
     <div class="w3-pad"><button data-b="tl" aria-label="פנייה שמאלה">↶</button><button data-b="f" aria-label="קדימה">▲</button><button data-b="tr" aria-label="פנייה ימינה">↷</button>
     <button data-b="l" aria-label="צעד שמאלה">◀</button><button data-b="b" aria-label="אחורה">▼</button><button data-b="r" aria-label="צעד ימינה">▶</button></div>`;
-  host.append(bar, ui);
-  bar.querySelector(".w3-toggle").onclick = () => setWalk(!walk.on);
+  const map = document.createElement("canvas"); map.className = "w3-map"; map.width = 360; map.height = 360; map.hidden = true;
+  map.title = "לחצו על חדר כדי לעבור אליו";
+  host.append(bar, ui, map);
+  bar.querySelector(".w3-top").onclick = () => topView();
+  map.addEventListener("click", e => {
+    const r = map.getBoundingClientRect(), mx = (e.clientX - r.left) * map.width / r.width, my = (e.clientY - r.top) * map.height / r.height;
+    const T = mapTransform(); if (!T) return;
+    const wx = (mx - T.ox) / T.k + T.minX, wz = (my - T.oy) / T.k + T.minZ;
+    const room = walk.rooms.find(q => wx >= q.x && wx <= q.x + q.w && wz >= q.z && wz <= q.z + q.h);
+    if (room) goRoom(room); else if (!blocked(wx, wz)) { camera.position.set(wx, EYE, wz); }
+  });
+  bar.querySelector(".w3-toggle").onclick = () => {
+    if (!walk.on && viewMode === "top") { viewMode = "orbit"; camera.fov = 50; camera.updateProjectionMatrix(); rerender(); }
+    setWalk(!walk.on);
+  };
   bar.querySelector(".w3-up").onclick = () => { if (!walk.on) setWalk(true); walk.pitch = walk.pitch > 0.6 ? 0.1 : 0.95; applyLook(); };
   bar.querySelector(".w3-fs").onclick = () => { const d = document; (d.fullscreenElement ? d.exitFullscreen() : host.requestFullscreen?.())?.catch?.(() => {}); };
   ui.querySelectorAll("[data-b]").forEach(b => {
@@ -272,5 +298,52 @@ function setupWalk() {
   window.addEventListener("keyup", e => { walk.keys[e.code] = false; });
 }
 
-window.GP3D = { render, setWalk: on => setWalk(on), teleport: (x, z, yaw) => { camera.position.set(x, EYE, z); walk.yaw = yaw; applyLook(); }, walkState: () => ({ on: walk.on, x: camera.position.x, z: camera.position.z, pitch: walk.pitch }) };
+/* ---------- מבט על ומפה קטנה ---------- */
+function topView() {
+  if (walk.on) setWalk(false);
+  viewMode = "top"; rerender();
+  const b = walk.bounds; if (!b) return;
+  const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2, s = Math.max(b.maxX - b.minX, b.maxZ - b.minZ);
+  camera.fov = 8; camera.updateProjectionMatrix();          // זווית צרה ממרחק = כמעט בלי פרספקטיבה, התקרה יושבת על הקווים
+  const dist = (s * 0.62) / Math.tan((camera.fov / 2) * Math.PI / 180);
+  camera.position.set(cx, dist, cz + 0.001); controls.target.set(cx, 0, cz); controls.update();
+}
+function mapTransform() {
+  const b = walk.bounds; if (!b) return null;
+  const W = 360, pad = 18, k = Math.min((W - 2 * pad) / (b.maxX - b.minX), (W - 2 * pad) / (b.maxZ - b.minZ));
+  return { k, minX: b.minX, minZ: b.minZ, ox: (W - (b.maxX - b.minX) * k) / 2, oy: (W - (b.maxZ - b.minZ) * k) / 2 };
+}
+function goRoom(q) {
+  // נכנסים מקצה החדר ומסתכלים לאורכו – רואים את כל החדר ואת התקרה
+  if (q.w >= q.h) { camera.position.set(q.x + Math.min(0.6, q.w * 0.15), EYE, q.z + q.h / 2); walk.yaw = -Math.PI / 2; }
+  else { camera.position.set(q.x + q.w / 2, EYE, q.z + q.h - Math.min(0.6, q.h * 0.15)); walk.yaw = 0; }
+  walk.pitch = 0.3; applyLook();
+}
+function drawMap() {
+  const map = host.querySelector(".w3-map"); const T = mapTransform(); if (!map || map.hidden || !T) return;
+  const c = map.getContext("2d"), X = x => T.ox + (x - T.minX) * T.k, Z = z => T.oy + (z - T.minZ) * T.k;
+  c.clearRect(0, 0, 360, 360);
+  const p = camera.position;
+  walk.rooms.forEach(q => {
+    const inside = p.x >= q.x && p.x <= q.x + q.w && p.z >= q.z && p.z <= q.z + q.h;
+    c.fillStyle = inside ? "rgba(201,165,92,.45)" : "rgba(120,110,95,.18)"; c.strokeStyle = "#8a7a5a"; c.lineWidth = 2;
+    c.fillRect(X(q.x), Z(q.z), q.w * T.k, q.h * T.k); c.strokeRect(X(q.x), Z(q.z), q.w * T.k, q.h * T.k);
+    c.fillStyle = "#222"; c.font = "600 22px Assistant, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText(q.name || "חדר", X(q.x + q.w / 2), Z(q.z + q.h / 2));
+  });
+  walk.walls.forEach(w => {
+    c.strokeStyle = "#222"; c.lineWidth = 6;
+    const segs = []; let t0 = 0;
+    [...w.doors].sort((a, b) => a[0] - b[0]).forEach(([a, b]) => { segs.push([t0, a]); t0 = b; }); segs.push([t0, w.len]);
+    segs.forEach(([a, b]) => { if (b <= a) return; c.beginPath(); c.moveTo(X(w.ax + w.ux * a), Z(w.az + w.uz * a)); c.lineTo(X(w.ax + w.ux * b), Z(w.az + w.uz * b)); c.stroke(); });
+  });
+  // אני + כיוון המבט
+  const px = X(p.x), pz = Z(p.z), dx = -Math.sin(walk.yaw), dz = -Math.cos(walk.yaw), a = 0.55, L = 46;
+  c.fillStyle = "rgba(44,111,176,.25)"; c.beginPath(); c.moveTo(px, pz);
+  c.lineTo(px + L * (dx * Math.cos(a) - dz * Math.sin(a)), pz + L * (dz * Math.cos(a) + dx * Math.sin(a)));
+  c.lineTo(px + L * (dx * Math.cos(-a) - dz * Math.sin(-a)), pz + L * (dz * Math.cos(-a) + dx * Math.sin(-a))); c.closePath(); c.fill();
+  c.fillStyle = "#2c6fb0"; c.beginPath(); c.arc(px, pz, 9, 0, 7); c.fill(); c.strokeStyle = "#fff"; c.lineWidth = 3; c.stroke();
+}
+
+window.GP3D = { render, topView, setWalk: on => setWalk(on), teleport: (x, z, yaw) => { camera.position.set(x, EYE, z); walk.yaw = yaw; applyLook(); }, walkState: () => ({ on: walk.on, x: camera.position.x, z: camera.position.z, pitch: walk.pitch }) };
 window.dispatchEvent(new Event("gp3d-ready"));

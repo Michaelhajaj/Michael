@@ -139,7 +139,7 @@
 
 /* 3D */
 .gp-3d { position: relative; height: min(70vh, 620px); background: #1b1b19; display: grid; place-items: center; color: var(--stone-light); }
-.gp-3d canvas { display: block; width: 100% !important; height: 100% !important; }
+.gp-3d canvas:not(.w3-map) { display: block; width: 100% !important; height: 100% !important; }
 .gp-3dopts { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; align-items: center; }
 .gp-3dopts label { display: inline-flex; gap: 6px; align-items: center; }
 .gp-3dopts input[type=color] { width: 34px; height: 26px; border: 1px solid var(--hair); padding: 0; background: none; }
