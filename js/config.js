@@ -20,7 +20,7 @@ const SITE_CONFIG = {
   aiEndpoint: "",                    // ← כתובת שרת ה-AI להדמיה על תמונה (ראו ai-worker/README.md)
 
   /* ---------- מתכנן הגבס החכם (plans.html) ---------- */
-  planAiEndpoint: "https://rapid-sunset-681d.michaelhajaj10.workers.dev",                // ← כתובת שרת הזיהוי האוטומטי (ראו plan-worker/README.md), למשל "https://plan-worker.xxx.workers.dev"
+  planAiEndpoint: "https://delicate-haze-f992.michaelhajaj10.workers.dev",                // ← כתובת שרת הזיהוי האוטומטי (ראו plan-worker/README.md), למשל "https://plan-worker.xxx.workers.dev"
 
   payments: {
     free: true,                      // ← true = תקופת השקה: הכול פתוח בחינם. כשמוכנים לגבות – משנים ל-false
