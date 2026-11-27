@@ -140,7 +140,7 @@
      ========================================================= */
   function ceiling(input) {
     const o = Object.assign({ thickness: 12.5, layers: 1, boardType: "regular", wet: false, boardLen: 2600, dir: "auto",
-      profile: "F47", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none", strGap: 6, strThk: "1.2" }, input.opts || {});
+      profile: "F47", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none", strGap: 6, strThk: "H13", strColor: "לבן", shadowModel: "TAF H13" }, input.opts || {});
     if (o.wet && o.boardType === "regular") o.boardType = "water";
     if (o.wet && o.boardType === "fire") o.boardType = "firewater";
     const R = rulesFor(o.ruleset);
@@ -329,8 +329,12 @@
     bill.add("track-" + trackKey, R.profiles[trackKey].name + " – 3 מ׳", "יח׳", pPer.count);
     const per = C.perimeter[o.perimeter] || C.perimeter.none;
     if (per.item) {
-      const det = o.perimeter === "str" ? ` (ניתוק ${o.strGap || 6} מ״מ, ${o.strThk || "לפי התוכנית"}, ${o.strColor || "לבן"})` : "";
-      bill.add("perim-" + o.perimeter + det, per.item + det, "מ׳", perim / 1000 * 1.05); notes.push(per.note);
+      const det = o.perimeter === "str" ? ` (ניתוק ${o.strGap || 6} מ״מ, ${o.strThk || "לפי התוכנית"}, ${o.strColor || "לבן"})`
+        : o.perimeter === "shadow" ? ` (${o.shadowModel || "לפי התוכנית"})` : "";
+      const alu = o.perimeter === "str" || o.perimeter === "shadow" || o.perimeter === "knife";
+      if (alu) bill.add("perim-" + o.perimeter + det, per.item + det + " – מוט 3 מ׳", "יח׳", ceil(perim * 1.05 / 3000), `${(perim / 1000).toFixed(1)} מ׳ היקף + פחת לפינות`);
+      else bill.add("perim-" + o.perimeter + det, per.item + det, "מ׳", perim / 1000 * 1.05);
+      notes.push(per.note);
     }
     // אביזרים שדורשים הכנה מוקדמת בקונסטרוקציה (רונה, פס צבירה, פרופיל מגנטי שקוע)
     fx.filter(f => (R.fixtures[f.kind] || {}).prep).forEach(f => {
