@@ -141,7 +141,7 @@
      ========================================================= */
   function ceiling(input) {
     const o = Object.assign({ thickness: 12.5, layers: 1, boardType: "regular", wet: false, boardLen: 2600, dir: "auto",
-      profile: "F47", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none", strGap: 6, strThk: "H13", strColor: "לבן", shadowModel: "TAF H13" }, input.opts || {});
+      profile: "F47", hangerType: "nonius", dropCm: 15, insulation: false, finish: "basic", avoidPrimaries: true, perimeter: "none", strGap: 6, strThk: "H13", strColor: "לבן", shadowModel: "TAF H13" }, input.opts || {});
     if (o.wet && o.boardType === "regular") o.boardType = "water";
     if (o.wet && o.boardType === "fire") o.boardType = "firewater";
     const R = rulesFor(o.ruleset);
@@ -192,10 +192,15 @@
     const blockedY = o.avoidPrimaries ? fx.map(f => ({ a: f.y - f.fh / 2 - clr, b: f.y + f.fh / 2 + clr, ref: f })) : [];
     // תקרת זקפים ומסילות (C50/C70/C100): הזקפים נושאים בין שני קירות – בלי ראשיים ובלי מתלים, עד המפתח של טבלה 4
     const studSys = !!C.studSpan[o.profile];
+    const directSys = o.profile === "C60d";   // חד-מפלסי: C60 צמוד עם לוחיות תלייה מחוררות – בלי ראשיים
+    if (directSys) S = Math.min(S, 400);
     const maxSpan = studSys ? C.studSpan[o.profile] : 0;
     const firstP = Math.min(C.hangerFromWall, P / 2);
     let primaries = [];
-    if (!studSys) {
+    if (directSys) {
+      if (o.dropCm > 20) warnings.push(`הנמכה של ${o.dropCm} ס״מ – מערכת C60 חד-מפלסית מיועדת להנמכות וחיפויים עד 20 ס״מ (טמבור). מעל זה – שתי וערב דו-מפלסי (CD-60 / F47).`);
+      notes.push("C60 חד-מפלסי: פרופילים כל ≤40 ס״מ ישירות מתחת לתקרה, על לוחיות תלייה מחוררות כל ≤90 ס״מ לאורך כל פרופיל (טמבור: כ-2.6 מ׳ פרופיל ו-2.9 לוחיות למ״ר).");
+    } else if (!studSys) {
       const priRes = layLines(H - 2 * firstP, P, [], blockedY.map(b => ({ a: b.a - firstP, b: b.b - firstP, ref: b.ref })), 60, true);
       primaries = priRes.lines.map(v => v + firstP);
     } else if (H > maxSpan) {
@@ -215,6 +220,12 @@
     const loadN = (hs / 1000) * (Math.min(primGap, P) / 1000) * kgM2 * 9.81;
     const firstH = Math.min(C.hangerFromWall, hs / 2);
     const hangers = [];
+    if (directSys) {   // לוחיות תלייה לאורך כל פרופיל משני
+      secRes.lines.filter(x => x > 0 && x < W).forEach(x => {
+        const fy = Math.min(C.hangerFromWall, 300), n = Math.max(1, ceil((H - 2 * fy) / 900));
+        for (let i = 0; i <= n; i++) hangers.push({ x, y: r1(fy + (H - 2 * fy) * i / n) });
+      });
+    }
     primaries.forEach(y => {
       const n = Math.max(1, ceil((W - 2 * firstH) / hs));
       for (let i = 0; i <= n; i++) hangers.push({ x: r1(firstH + (W - 2 * firstH) * i / n), y });
@@ -330,6 +341,7 @@
     if (o.boardType === "fireplus" || o.boardType === "fireboard") notes.push("לוח עמיד אש מיוחד: מבנה המערכת (שכבות, ניצב, ברגים, פתחי שירות עמידי אש) חייב להתאים לבדיקת האש של היצרן לפי ת״י 931 – לא לשנות רכיבים.");
     if (o.boardType === "xray") notes.push("SafeBoard: לוח 62.5×240 ס״מ, 12.5 מ״מ, 17 ק״ג/מ״ר, ליבת בריום סולפט (ללא עופרת); מספר הלוחות לפי מתח המכשיר ודרישת הממונה על הקרינה; שפכטל SafeBoard ייעודי.");
     notes.push("פס איטום והפרדה (קופריבנד) לכל אורך המסילה ההיקפית, בכל מפגש של השלד עם קיר או תקרה בנויה.");
+    if (o.profile === "C60" && o.dropCm >= 20) notes.push("הנמכה של 20 ס״מ ומעלה: שתי וערב דו-מפלסי CD-60 על מתלים קפיציים (טמבור).");
     if (o.dropCm < 8) warnings.push("הנמכה של פחות מ-8 ס״מ – אין מספיק מקום לשתי וערב + ספוטים. שקלו פרופיל ישיר (F47 עם מתלה ישיר).");
     const deepFix = fx.filter(f => ["downlight", "speaker"].includes(f.kind));
     if (deepFix.length && o.dropCm < 12) warnings.push("גופי תאורה / רמקולים דורשים בדרך כלל עומק של 10–12 ס״מ לפחות – בדקו בדף היצרן.");
@@ -360,7 +372,9 @@
     if (studSys) bill.add("angle-trim", "זוויתן / מחבר לחילופים ולשורות תמיכה", "יח׳", trimmed.length * 4 + primaries.length * secondaries.length);
     else bill.add("cross-" + o.profile, `מחבר שתי וערב (צלב) ${o.profile}`, "יח׳", crosses + trimmed.length * 4);
     bill.add("ext-" + o.profile, `מאריך ${o.profile}`, "יח׳", pSec.joins + pPri.joins);
-    bill.add("hanger", "מתלה (נוניוס / מוט הברגה 6 מ״מ / לוחית תלייה)", "יח׳", hangers.length);
+    const hName = directSys ? "לוחית תלייה מחוררת ל-CD60 (200 מ״מ)" : (C.hangerTypes[o.hangerType] || "מתלה (נוניוס / מוט הברגה 6 מ״מ / לוחית תלייה)");
+    bill.add("hanger-" + (directSys ? "strap" : o.hangerType || "any"), hName, "יח׳", hangers.length);
+    if (o.hangerType === "stud50" && !directSys) bill.add("metal", R.screws.metal, "יח׳", hangers.length * 2);
     bill.add("ceilAnchor", R.screws.ceilAnchor, "יח׳", hangers.length);
     bill.add("anchor", R.screws.anchor, "יח׳", ceil(perim / C.perimeterFix) + 4, "לפרופיל ההיקפי");
     bill.add("seal", "פס איטום והפרדה מעכב בעירה (קופריבנד)", "מ׳", perim / 1000 * 1.05, "בכל מפגש שלד עם קיר / תקרה");
@@ -403,7 +417,8 @@
     const L = r1(input.L), Hh = r1(o.height);
     const warnings = [], notes = [];
     const P = R.partition, BW = R.board.width;
-    const strict = o.wet || o.tiles || o.boardType === "xray";
+    const strict = o.wet || o.tiles || o.boardType === "xray" || o.exterior;
+    if (o.exterior) notes.push("קיר חיצוני: ניצבים כל ≤40 ס״מ, ניצבים 70–120 מ״מ בעובי 0.8 מ״מ לפחות, לוח חוץ (סופרבורד / צמנטי), חסם אדים, בידוד ושליכט לפי המתכנן (טמבור).");
     const stdS = o.lining ? (strict ? R.lining.profileSpacingWet : R.lining.profileSpacing) : (strict ? P.studSpacingWet : P.studSpacing);
     let S = o.spacing ? Math.min(o.spacing, stdS) : stdS;
     if (o.spacing && o.spacing > stdS) warnings.push(`מרחק ניצבים ${o.spacing} מ״מ חורג מהתקן (${stdS} מ״מ) – הוחזר לערך התקני.`);
