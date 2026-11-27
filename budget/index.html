@@ -43,6 +43,7 @@
   --shadow:none;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--page);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:16px;line-height:1.45;padding-bottom:90px}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -193,6 +194,12 @@ details summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px
 .imp tr.off td{opacity:.5}
 .imp .nt{font-size:12px;color:var(--warn);display:block}
 .imp input[type=checkbox]{width:18px;height:18px}
+.mebtn{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:5px 11px;font-size:13.5px;cursor:pointer;color:var(--ink);font-weight:600;white-space:nowrap}
+.pill.who{background:var(--surface-2);color:var(--ink)}
+.pill.who::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc);display:inline-block;margin-inline-end:5px}
+.dotc{width:10px;height:10px;border-radius:50%;display:inline-block;margin-inline-end:6px;background:var(--pc)}
+ol.steps{padding-inline-start:20px;margin:8px 0;font-size:14.5px}
+ol.steps li{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -201,6 +208,7 @@ details summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px
   <div class="wrap">
     <div class="row1">
       <div class="logo"><span class="dot">₪</span> התקציב שלי</div>
+      <button class="mebtn" id="meBtn" aria-label="משתמש וסנכרון">👤</button>
       <div class="month-nav">
         <button id="prevM" aria-label="חודש קודם">›</button>
         <div class="label" id="mLabel"></div>
@@ -226,12 +234,14 @@ details summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px
 
 <main class="wrap">
 
+<div id="roBanner" class="status warn" style="margin-top:16px" hidden><div class="ic">🔒</div><div><b>אפשר רק לצפות</b><p>כדי לרשום תנועות צריך הרשאת עריכה. בקש ממי ששיתף איתך את הקישור לשתף אותך כ"עורך" (Editor).</p></div></div>
 <section class="view on" id="v-dash">
   <div id="statusBox"></div>
   <div class="grid stats" id="stats"></div>
   <div style="height:14px"></div>
   <div id="maaserBox"></div>
   <div class="card" id="accBox"></div>
+  <div class="card" id="whoBox" hidden></div>
   <div class="card">
     <h2>לאן הולך הכסף החודש</h2>
     <p class="sub">כל רוחב הפס = מה שנכנס החודש. רואים כמה הלך להוצאות, למעשרות, לחיסכון וכמה נשאר.</p>
@@ -264,6 +274,7 @@ details summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px
       <select id="fType" aria-label="סוג"><option value="">כל הסוגים</option><option value="expense">הוצאות</option><option value="income">הכנסות</option><option value="transfer">העברות בין החשבונות</option></select>
       <select id="fCat" aria-label="קטגוריה"></select>
       <select id="fPay" aria-label="אמצעי תשלום"></select>
+      <select id="fWho" aria-label="מי רשם"></select>
     </div>
     <div id="txList"></div>
   </div>
@@ -324,6 +335,21 @@ details summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px
 </section>
 
 <section class="view" id="v-settings">
+  <div class="card">
+    <h2>👫 בני הבית וסנכרון</h2>
+    <p class="sub" id="whoNote"></p>
+    <div class="list-edit" id="peopleEdit"></div>
+    <div class="btns" style="margin-top:8px"><button class="btn small" id="savePeople">שמור שמות</button><button class="btn small ghost" id="switchMe">אני לא <span id="meName"></span> – החלף משתמש</button></div>
+    <details id="shareHow"><summary>איך מחברים את אסתר (או בן בית אחר)?</summary>
+      <ol class="steps">
+        <li>מיכאל: בדף הזה ב-Claude, לוחצים על <b>שיתוף (Share)</b> ומזמינים את כתובת המייל של אסתר בהרשאת <b>עורך (Editor)</b>. בלי הרשאת עריכה היא תוכל רק לצפות.</li>
+        <li>אסתר: פותחת את הקישור באייפון ב-Safari, ונכנסת לחשבון Claude עם אותה כתובת מייל. אפשר לפתוח חשבון חינם.</li>
+        <li>בפתיחה הראשונה האפליקציה שואלת "מי אתה?" ואסתר בוחרת <b>אסתר</b>.</li>
+        <li>כדי שתיפתח כמו אפליקציה: באייפון, כפתור השיתוף ב-Safari ← "הוסף למסך הבית". באנדרואיד: בכרום, ⋮ ← "הוסף למסך הבית".</li>
+      </ol>
+      <p class="muted" style="font-size:13.5px">מעכשיו כל תנועה שאחד מכם רושם מופיעה אצל השני תוך כמה שניות, עם השם של מי שרשם.</p>
+    </details>
+  </div>
   <div class="card">
     <h2>💝 מעשרות</h2>
     <label class="check"><input type="checkbox" id="mOn"> <span>לחשב מעשרות<small>יופיע בסיכום כמה צריך לתת החודש וכמה כבר נתת</small></span></label>
@@ -490,6 +516,15 @@ details summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px
     <div class="btns" id="askBtns"></div>
   </div>
 </div>
+<div class="modal" id="join" role="dialog" aria-modal="true" aria-labelledby="joinT">
+  <div class="sheet" style="max-width:440px">
+    <h3 id="joinT">👋 מי משתמש באפליקציה?</h3>
+    <p class="muted" style="margin-top:0">בחר את השם שלך. כל תנועה שתרשום תסומן בשם שלך, וכל בני הבית יראו את אותם נתונים.</p>
+    <div class="chips" id="joinPeople"></div>
+    <label class="f" style="margin-top:14px">או כתוב שם<input type="text" id="joinName" maxlength="20" placeholder="למשל: מיכאל"></label>
+    <button class="btn" id="joinGo" type="button" style="width:100%">המשך</button>
+  </div>
+</div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
 
@@ -538,6 +573,7 @@ const sgn=v=>v<0?'−':'';
 // ---------- state ----------
 function migrate(s){
   s=s||{};s.tx=Array.isArray(s.tx)?s.tx:[];s.cards=Array.isArray(s.cards)?s.cards:[];s.rules=s.rules||{};s.settings=s.settings||{};
+  s.people=s.people&&typeof s.people==='object'?s.people:{};
   s.cats=s.cats||{};s.cats.expense=s.cats.expense||[];s.cats.income=s.cats.income||[];
   if((s.v||0)<2){
     s.cats.expense.forEach(c=>{c.acc=c.acc||'home'});
@@ -562,7 +598,14 @@ let idx=null;
 function monthIdx(){if(!idx){idx={};for(const t of S.tx){const m=ym(t.date);(idx[m]||(idx[m]=[])).push(t)}}return idx}
 const monthTx=m=>monthIdx()[m]||[];
 let cloud=null;
-function save(){idx=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){if(!cloud)toast('⚠️ לא הצלחתי לשמור במכשיר')}if(cloud)cloudSync()}
+let readOnly=false;
+function save(){idx=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){if(!cloud)toast('⚠️ לא הצלחתי לשמור במכשיר')}if(cloud&&!readOnly)cloudSync()}
+const PCOL=['#257de0','#d6457f','#00a37f','#f47230','#6a4ce2'];
+let me=null;try{me=localStorage.getItem(KEY+'-me')}catch(e){}
+const people=()=>S.people||{};
+const pName=id=>(people()[id]||{}).name||'';
+const pPill=id=>id&&people()[id]?`<span class="pill who" style="--pc:${esc(people()[id].color)}">${esc(pName(id))}</span>`:'';
+const multi=()=>Object.keys(people()).length>1;
 
 let view='all';try{view=localStorage.getItem(KEY+'-view')||'all'}catch(e){}
 if(!['all','home','biz'].includes(view))view='all';
@@ -616,7 +659,8 @@ const yes=(msg,ok='כן, מחק')=>ask(msg,[[ok,true,'danger'],['ביטול',fal
 function render(){
   $('#mLabel').textContent=mName(cur);
   $$('#accsw button').forEach(b=>b.classList.toggle('on',b.dataset.a===view));
-  renderDash();renderList();renderCards();renderBudget();
+  paintMe();
+  renderDash();renderList();renderCards();if(!$('#v-budget').contains(document.activeElement))renderBudget();
 }
 
 function renderDash(){
@@ -679,6 +723,11 @@ function renderDash(){
   }
   $('#addTr').onclick=e=>{e.preventDefault();openForm(null,{type:'transfer'})};
 
+  const byP={};for(const t of T.tx){if(t.type==='transfer')continue;const k=t.by||'';const o=byP[k]=byP[k]||{inc:0,exp:0,n:0};o.n++;if(t.type==='income')o.inc+=t.amount;else o.exp+=t.amount}
+  const pk=Object.keys(byP);
+  if(multi()||pk.some(k=>k&&k!==me)){$('#whoBox').hidden=false;
+    $('#whoBox').innerHTML=`<h2>👫 מי רשם מה החודש</h2><div class="tblwrap"><table><tr><th>מי</th><th class="num">הכנסות</th><th class="num">הוצאות</th><th class="num">תנועות</th></tr>${Object.keys(people()).concat(pk.includes('')?['']:[]).map(k=>{const o=byP[k]||{inc:0,exp:0,n:0};return`<tr><td>${k?`<span class="dotc" style="--pc:${esc(people()[k].color)}"></span>${esc(pName(k))}${k===me?' (אתה)':''}`:'<span class="muted">לא ידוע</span>'}</td><td class="num">${money(o.inc)}</td><td class="num">${money(o.exp)}</td><td class="num">${o.n}</td></tr>`}).join('')}</table></div>`}
+  else $('#whoBox').hidden=true;
   const inc=view==='all'?T.inc:T.inc+T.tin,out=view==='all'?T.exp:T.exp+T.tout;
   const segs=[];const spent=Math.min(out,inc),over=Math.max(out-inc,0);
   let room=inc-spent;const md=Math.min(T.maaserDue,room);room-=md;const sv=Math.min(T.saving,room);room-=sv;
@@ -731,9 +780,10 @@ function renderList(){
   fc.innerHTML='<option value="">כל הקטגוריות</option>'+[...vc('expense').map(c=>['expense',c]),...vc('income').map(c=>['income',c])].map(([t,c])=>`<option value="${t}:${esc(c.id)}">${esc(c.icon)} ${esc(c.name)}</option>`).join('');
   fp.innerHTML='<option value="">כל אמצעי התשלום</option>'+Object.entries(PAY).map(([k,p])=>`<option value="${k}">${p.i} ${p.n}</option>`).join('')+S.cards.map(c=>`<option value="card:${esc(c.id)}">💳 ${esc(c.name)}</option>`).join('');
   fc.value=cv;fp.value=pv;
+  const fw=$('#fWho'),wv=fw.value;fw.innerHTML='<option value="">כל בני הבית</option>'+Object.entries(people()).map(([k,x])=>`<option value="${esc(k)}">👤 ${esc(x.name)}</option>`).join('');fw.value=wv;fw.hidden=!multi();
   const q=$('#fSearch').value.trim(),ft=$('#fType').value;
   const all=monthTx(cur).filter(inView);
-  const tx=all.filter(t=>(!ft||t.type===ft)&&(!fc.value||fc.value===t.type+':'+t.cat)&&(!fp.value||(fp.value.startsWith('card:')?t.pay==='credit'&&t.card===fp.value.slice(5):t.pay===fp.value))&&(!q||(t.desc||'').includes(q)||(t.type!=='transfer'&&catOf(t.type,t.cat).name.includes(q))));
+  const tx=all.filter(t=>(!fw.value||t.by===fw.value)&&(!ft||t.type===ft)&&(!fc.value||fc.value===t.type+':'+t.cat)&&(!fp.value||(fp.value.startsWith('card:')?t.pay==='credit'&&t.card===fp.value.slice(5):t.pay===fp.value))&&(!q||(t.desc||'').includes(q)||(t.type!=='transfer'&&catOf(t.type,t.cat).name.includes(q))));
   tx.sort((a,b)=>b.date.localeCompare(a.date)||(b.ts||0)-(a.ts||0));
   if(!tx.length){$('#txList').innerHTML=`<div class="empty">${all.length?'אין תנועות שמתאימות לסינון':'אין עדיין תנועות בחודש הזה.<br>לחץ "+ הוסף תנועה" כדי להתחיל.'}</div>`;return}
   let html=`<div class="muted" style="font-size:13.5px">${tx.length} תנועות</div>`,lastD='';
@@ -745,6 +795,7 @@ function renderList(){
     else{const c=catOf(t.type,t.cat),P=PAY[t.pay];ico=esc(c.icon);t1=t.desc||c.name;
       t2=`${view==='all'?accPill(t.acc):''}<span>${esc(c.name)}</span>${t.type==='expense'&&P?`<span>· ${P.i} ${P.n}${t.pay==='credit'&&t.card?' – '+esc(cardName(t.card)):''}</span>`:''}`;
       amt=(t.type==='income'?'+':'−')+money(t.amount);cls=t.type==='income'?'in':''}
+    if(multi())t2=pPill(t.by)+t2;
     t2+=`${t.inst?`<span class="pill">תשלום ${esc(t.inst)}</span>`:''}${t.fixed?'<span class="pill fix">קבוע</span>':''}${t.planned?'<span class="pill plan">צפוי</span>':''}`;
     html+=`<div class="tx"><div class="ico">${ico}</div><div class="mid"><div class="t1">${esc(t1)}</div><div class="t2">${t2}</div></div>
       <div class="end"><div class="amt ${cls}">${amt}</div><div class="acts">${t.planned?`<button data-done="${esc(t.id)}" title="סמן שקרה" aria-label="סמן שקרה">✓</button>`:''}<button data-edit="${esc(t.id)}" title="עריכה" aria-label="עריכה">✏️</button><button data-del="${esc(t.id)}" title="מחיקה" aria-label="מחיקה">🗑️</button></div></div></div>`;
@@ -793,6 +844,9 @@ function renderSettings(){
   for(const type of ['expense','income'])
     $(type==='expense'?'#catExpEdit':'#catIncEdit').innerHTML=S.cats[type].map(c=>`<div class="it" data-type="${type}" data-id="${esc(c.id)}"><input class="ic" type="text" value="${esc(c.icon)}" maxlength="4" aria-label="אימוג'י"><input type="text" class="nm" value="${esc(c.name)}" aria-label="שם">${accSel(c.acc,true)}${type==='income'?`<label title="הכנסה שלא חייבת במעשר"><input type="checkbox" class="nmc"${c.nm?' checked':''}>בלי מעשר</label>`:''}${c.id==='maaser'?'':`<button data-rmcat="${type}:${esc(c.id)}" aria-label="מחק">🗑️</button>`}</div>`).join('');
   $('#theme').value=st.theme||'';
+  $('#peopleEdit').innerHTML=Object.entries(people()).map(([k,x])=>`<div class="it" data-pid="${esc(k)}"><span class="dotc" style="--pc:${esc(x.color)}"></span><input type="text" class="nm" value="${esc(x.name)}" maxlength="20" aria-label="שם">${k===me?'<span class="pill">אתה</span>':''}</div>`).join('')||'<div class="muted">עוד לא נבחר שם</div>';
+  $('#meName').textContent=pName(me)||'…';
+  $('#whoNote').textContent=cloud?(readOnly?'🔒 אתה מחובר עם הרשאת צפייה בלבד.':'☁️ הנתונים משותפים לכל מי שהקישור משותף איתו בהרשאת עריכה, ומתעדכנים אצל כולם תוך שניות. כל תנועה מסומנת בשם של מי שרשם אותה.'):'📱 כרגע הנתונים שמורים רק במכשיר הזה. כדי לסנכרן עם אסתר, פותחים את האפליקציה מהקישור ב-Claude (ההסבר למטה).';
 }
 function applyTheme(){const t=S.settings.theme;if(t)document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme')}
 
@@ -842,8 +896,8 @@ function submitForm(keepOpen){
     base={type:form.type,acc:form.acc,cat:form.cat,desc:$('#iDesc').value.trim(),fixed:$('#iFixed').checked,planned:$('#iPlanned').checked};
     if(form.type==='expense'){base.pay=form.pay;base.card=form.pay==='credit'?$('#iCard').value:''}}
   let msg=form.editId?'עודכן ✓':'נשמר ✓';
-  if(form.editId){const t=S.tx.find(x=>x.id===form.editId);for(const k of ['cat','pay','card','to'])delete t[k];Object.assign(t,base,{amount,date})}
-  else{
+  if(form.editId){const t=S.tx.find(x=>x.id===form.editId);if(!t){toast('התנועה נמחקה בינתיים');closeForm();return}base.by=t.by||me;for(const k of ['cat','pay','card','to'])delete t[k];Object.assign(t,base,{amount,date})}
+  else{base.by=me;
     const n=form.type==='expense'&&form.pay==='credit'?Math.max(1,Math.min(60,parseInt($('#iInst').value)||1)):1;
     if(n>1){const k=Math.min(Math.max(parseInt($('#iInstCur').value)||1,1),n),mode=$('#iInstMode').value;
       const per=mode==='monthly'?r2(amount):r2(amount/n),firstAmt=mode==='monthly'?per:r2(amount-per*(n-1)),g=uid();
@@ -984,7 +1038,7 @@ function doImport(){
     if(r.kind==='transfer')t={type:'transfer',acc:r.neg?acc:other(acc),to:r.neg?other(acc):acc,desc:r.desc};
     else{t={type:r.kind,acc,cat:r.cat,desc:r.desc};if(r.kind==='expense'){t.pay=src==='bank'?'bank':'credit';t.card=src==='bank'?'':src}
       const k=dkey(r.desc);if(k)S.rules[k]=r.cat}
-    S.tx.push(Object.assign(t,{id:uid(),ts:ts+n,amount:r.amount,date:r.date,src:'import'}));n++}
+    S.tx.push(Object.assign(t,{id:uid(),ts:ts+n,amount:r.amount,date:r.date,src:'import',by:me}));n++}
   const months=[...new Set(imp.rows.filter(r=>r.on).map(r=>ym(r.date)))].sort();
   save();imp=null;renderImport();if(months.length)cur=months[months.length-1];render();
   toast(`יובאו ${n} תנועות ✓`);
@@ -1023,7 +1077,7 @@ $('#iTo').onchange=()=>{$('#iFrom').value=other($('#iTo').value)};
 ['#iInst','#iInstCur','#iInstMode','#iAmount'].forEach(s=>$(s).addEventListener('input',instHint));
 $('#txForm').addEventListener('submit',e=>{e.preventDefault();submitForm(false)});
 $('#saveMore').onclick=()=>submitForm(true);
-['#fSearch','#fType','#fCat','#fPay'].forEach(s=>$(s).addEventListener('input',renderList));
+['#fSearch','#fType','#fCat','#fPay','#fWho'].forEach(s=>$(s).addEventListener('input',renderList));
 $('#txList').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.edit)openForm(S.tx.find(t=>t.id===b.dataset.edit));
@@ -1037,7 +1091,7 @@ $('#copyFixed').onclick=()=>{
   if(!prev.length){toast('אין תנועות "קבוע" בחודש הקודם');return}
   const exist=monthTx(cur);let n=0;
   for(const t of prev){if(exist.some(x=>x.fixed&&x.type===t.type&&x.acc===t.acc&&x.cat===t.cat&&(x.desc||'')===(t.desc||'')))continue;
-    const d=Math.min(+t.date.slice(8),daysIn(cur));const c=Object.assign({},t,{id:uid(),ts:Date.now()+n,date:cur+'-'+pad(d),planned:true});delete c.group;delete c.inst;delete c.src;S.tx.push(c);n++}
+    const d=Math.min(+t.date.slice(8),daysIn(cur));const c=Object.assign({},t,{id:uid(),ts:Date.now()+n,date:cur+'-'+pad(d),planned:true,by:me});delete c.group;delete c.inst;delete c.src;S.tx.push(c);n++}
   save();render();toast(n?`הועתקו ${n} תנועות קבועות (מסומנות "צפוי")`:'הקבועות כבר קיימות בחודש הזה');
 };
 $('#saveBudgets').onclick=()=>{$$('[data-bud]').forEach(i=>{const c=S.cats.expense.find(x=>x.id===i.dataset.bud);if(c)c.budget=Math.max(0,parseFloat(i.value)||0)});save();render();toast('התקציבים נשמרו ✓')};
@@ -1064,32 +1118,112 @@ $('#exportCsv').onclick=()=>{const rows=[['תאריך','חשבון','סוג','ק
   download('budget-'+cur+'.csv','﻿'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n'),'text/csv;charset=utf-8')};
 $('#resetAll').onclick=async()=>{if(!await yes('למחוק את כל הנתונים? אי אפשר לבטל את זה. מומלץ קודם להוריד גיבוי.','כן, מחק הכל'))return;S=fresh();save();renderSettings();render();toast('הכל נמחק')};
 
-// ---------- cloud (claude.ai account storage, when available) ----------
-let written={},syncing=Promise.resolve();
-function splitDocs(){const d={meta:JSON.stringify({cards:S.cards,cats:S.cats,settings:S.settings,rules:S.rules,v:S.v})};
-  const by={};for(const t of S.tx){const m='tx-'+ym(t.date);(by[m]=by[m]||[]).push(t)}
-  for(const k in by)d[k]=JSON.stringify({items:by[k]});return d}
-function cloudSync(){syncing=syncing.then(async()=>{
-  const d=splitDocs(),col=cloud.db.collection(cloud.path);
-  try{for(const k in d){if(written[k]!==d[k]){await col.doc(k).set(JSON.parse(d[k]));written[k]=d[k]}}
-    for(const k in written){if(!(k in d)){await col.doc(k).delete();delete written[k]}}}
-  catch(e){toast(e&&e.code==='quota_exceeded'?'⚠️ נגמר המקום בחשבון – הורד גיבוי':'⚠️ השמירה בחשבון נכשלה, ננסה שוב בשינוי הבא');written={}}
-});return syncing}
+// ---------- who am I ----------
+function paintMe(){const n=pName(me);const st={ok:'☁️',saving:'⏳',err:'⚠️',loading:'⏳',local:'📱'}[syncState]||'';$('#meBtn').textContent=`${st} ${n||'מי אתה?'}`;$('#meBtn').title={ok:'מסונכרן',saving:'שומר…',err:'לא מסונכרן כרגע',loading:'מתחבר…',local:'שמור במכשיר בלבד'}[syncState]||''}
+let syncState='local';function setSync(x){syncState=x;paintMe()}
+function askWho(){return new Promise(res=>{
+  const ppl=people(),ids=Object.keys(ppl);
+  const sugg=['מיכאל','אסתר'].filter(n=>!ids.some(i=>ppl[i].name===n));
+  $('#joinPeople').innerHTML=ids.map(i=>`<button type="button" data-pid="${esc(i)}"><span class="dotc" style="--pc:${esc(ppl[i].color)}"></span>${esc(ppl[i].name)}</button>`).join('')+sugg.map(n=>`<button type="button" data-new="${esc(n)}">+ ${esc(n)}</button>`).join('');
+  $('#joinName').value='';$('#join').classList.add('on');
+  const done=(pid,isNew)=>{$('#join').classList.remove('on');me=pid;try{localStorage.setItem(KEY+'-me',pid)}catch(e){}if(isNew)save();render();res(pid)};
+  $('#joinPeople').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.pid)done(b.dataset.pid);else{$('#joinName').value=b.dataset.new;$('#joinGo').focus()}};
+  $('#joinGo').onclick=()=>{const n=$('#joinName').value.trim().slice(0,20);if(!n){toast('בחר שם או כתוב שם');return}
+    const ex=ids.find(i=>ppl[i].name===n);if(ex)return done(ex);
+    const pid=uid();S.people=Object.assign({},S.people,{[pid]:{name:n,color:PCOL[Object.keys(S.people||{}).length%PCOL.length]}});done(pid,true)};
+})}
+$('#meBtn').onclick=()=>showView('settings');
+$('#switchMe').onclick=()=>askWho().then(p=>{if(cloud&&!readOnly){memberPend=p;flush()}renderSettings()});
+$('#savePeople').onclick=()=>{const np=Object.assign({},S.people);$$('#peopleEdit [data-pid]').forEach(r=>{const k=r.dataset.pid,n=r.querySelector('.nm').value.trim();if(n&&np[k])np[k]=Object.assign({},np[k],{name:n})});S.people=np;save();render();renderSettings();toast('השמות נשמרו ✓')};
+
+// ---------- shared household storage (claude.ai) ----------
+// meta doc: settings, cards, categories, people, members (account id -> person)
+// tx-YYYY-MM docs: {items:{<txId>: tx}} – each change merges only its own item, so two people never overwrite each other
+const TXK=['id','ts','type','acc','to','amount','date','cat','pay','card','desc','fixed','planned','group','inst','src','by'];
+const normTx=t=>{const o={};for(const k of TXK)o[k]=t[k]===undefined?null:t[k];return o};
+const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
+const META_KEYS=['cards','cats','settings','rules','people','v'];
+const metaOf=o=>{const m={};for(const k of META_KEYS)m[k]=o[k]===undefined?null:o[k];return m};
+let base={},pend={},metaBase='',metaPend=null,memberPend=null,members={},hasMeta=false,houseMonths=new Set(),flushing=Promise.resolve(),afterFlush=null;
+const HOUSE='house';
+function cloudSync(){
+  for(const t of S.tx){const n=normTx(t),c=canon(n),b=base[t.id];if(!b||b.c!==c){const olds=new Set(pend[t.id]?pend[t.id].olds:[]);if(b&&b.m!==ym(t.date))olds.add(b.m);olds.delete(ym(t.date));pend[t.id]={m:ym(t.date),d:n,olds:[...olds]};base[t.id]={m:ym(t.date),c}}}
+  const ids=new Set(S.tx.map(t=>t.id));
+  for(const id in base)if(!ids.has(id)){const olds=new Set(pend[id]?pend[id].olds:[]);olds.add(base[id].m);pend[id]={m:base[id].m,d:null,olds:[...olds]};delete base[id]}
+  const mc=canon(metaOf(S));if(mc!==metaBase){metaPend=JSON.parse(mc);metaBase=mc}
+  flush();
+}
+function flush(){flushing=flushing.then(async()=>{
+  if(!Object.keys(pend).length&&!metaPend&&!memberPend&&!afterFlush)return;
+  setSync('saving');
+  try{
+    const mref=cloud.db.collection(HOUSE).doc('meta');
+    if(metaPend){const mp=metaPend;if(hasMeta)await mref.update(mp);else{await mref.set(mp);hasMeta=true}if(metaPend===mp)metaPend=null}
+    if(memberPend&&hasMeta){const mp=memberPend;await mref.update({members:{[cloud.uid]:mp}});members[cloud.uid]=mp;if(memberPend===mp)memberPend=null}
+    const snap=Object.assign({},pend),by={};
+    for(const id in snap){const p=snap[id];(by[p.m]=by[p.m]||{})[id]=p.d||{del:true};for(const o of p.olds||[])(by[o]=by[o]||{})[id]={del:true}}
+    for(const m in by){const ref=cloud.db.collection(HOUSE).doc('tx-'+m);
+      if(houseMonths.has(m))await ref.update({items:by[m]});
+      else{const g=await ref.get();if(g.exists)await ref.update({items:by[m]});else await ref.set({items:by[m]});houseMonths.add(m)}}
+    for(const id in snap)if(pend[id]===snap[id])delete pend[id];
+    if(afterFlush){const f=afterFlush;afterFlush=null;try{await f()}catch(e){}}
+    setSync(Object.keys(pend).length||metaPend?'saving':'ok');
+  }catch(e){setSync('err');console.warn('sync failed',e&&e.code,e&&e.message);
+    if(e&&e.code==='invalid_argument'&&!readOnly){readOnly=true;$('#roBanner').hidden=false;$('#fab').hidden=true;toast('🔒 אין לך הרשאת עריכה – רק צפייה')}
+    else toast(e&&e.code==='quota_exceeded'?'⚠️ נגמר המקום – הורד גיבוי':'⚠️ השמירה נכשלה. ננסה שוב בשינוי הבא')}
+})}
+function applyHouse(snap){
+  let meta=null;const items={};houseMonths=new Set();
+  for(const d of snap.docs){const b=d.data()||{};if(d.id==='meta'){meta=b;continue}
+    if(d.id.startsWith('tx-')){houseMonths.add(d.id.slice(3));const it=b.items||{};for(const id in it){const t=it[id];if(t&&!t.del&&t.date&&t.type)items[id]=t}}}
+  hasMeta=hasMeta||!!meta;members=(meta&&meta.members)||members;
+  for(const id in pend){const p=pend[id];if(p.d)items[id]=p.d;else delete items[id]}
+  base={};for(const id in items)base[id]={m:ym(items[id].date),c:canon(normTx(items[id]))};
+  let m=meta?metaOf(meta):null;metaBase=m?canon(m):'';
+  if(metaPend)m=Object.assign({},m||{},metaPend);
+  if(m){S=migrate({v:m.v||0,cards:m.cards||[],cats:m.cats||fresh().cats,settings:m.settings||{},rules:m.rules||{},people:m.people||{},tx:Object.values(items).map(t=>Object.assign({},t))})}
+  else{S.tx=Object.values(items).map(t=>Object.assign({},t))}
+  idx=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+}
 async function initCloud(){
-  if(!window.claude||typeof window.claude.use!=='function')return;
-  try{const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);if(!db||!user)return;
-    const id=await user.id();if(!id)return;const path='data/users/'+id;
-    const snap=await Promise.race([db.collection(path).get(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);
-    cloud={db,path};
-    if(!snap.empty){const meta=snap.docs.find(x=>x.id==='meta');const tx=[];
-      for(const doc of snap.docs){const b=doc.data()||{};written[doc.id]=JSON.stringify(b);if(doc.id.startsWith('tx-')&&Array.isArray(b.items))tx.push(...b.items)}
-      const m=meta?meta.data():{};S=migrate({v:m.v||0,cards:m.cards||[],cats:m.cats||fresh().cats,settings:m.settings||{},rules:m.rules||{},tx});idx=null;
-      if((m.v||0)<2)cloudSync();
-      try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
-      applyTheme();render();if($('#v-settings').classList.contains('on'))renderSettings();
-    }else cloudSync();
-    $('#storeNote').textContent='☁️ הנתונים נשמרים בחשבון Claude שלך, פרטיים רק לך, ומסונכרנים בין המכשירים שבהם אתה פותח את הקישור. מומלץ בכל זאת להוריד גיבוי מדי פעם.';
-  }catch(e){cloud=null}
+  const local=async()=>{setSync('local');if(!me||!people()[me])await askWho()};
+  if(!window.claude||typeof window.claude.use!=='function')return local();
+  let db=null,user=null;try{[db,user]=await Promise.all([claude.use('db'),claude.use('user')])}catch(e){}
+  if(!db||!user)return local();
+  const id=await user.id().catch(()=>null);if(!id)return local();
+  let canWrite=null;try{canWrite=await user.can('data.write')}catch(e){}
+  const localS=Object.assign({},S,{tx:S.tx.slice()});cloud={db,uid:id};setSync('loading');
+  let ready=false;
+  const timer=setTimeout(()=>{if(!ready){setSync('err');toast('⚠️ אין חיבור לסנכרון כרגע – מוצגים הנתונים השמורים במכשיר')}},10000);
+  db.collection(HOUSE).onSnapshot(async snap=>{
+    if(!ready&&snap.metadata&&snap.metadata.fromCache)return;
+    applyHouse(snap);
+    if(!ready){ready=true;clearTimeout(timer);await firstLoad(canWrite,localS)}
+    else{applyTheme();render()}
+    if(!Object.keys(pend).length&&!metaPend)setSync('ok');
+  },e=>{clearTimeout(timer);setSync('err');if(e&&e.code==='revoked'){readOnly=true}});
+}
+async function firstLoad(canWrite,localS){
+  if(canWrite===false){readOnly=true;$('#roBanner').hidden=false;$('#fab').hidden=true}
+  let migTx=null,oldMeta=null,markPriv=false;
+  if(!readOnly){
+    try{const priv=await cloud.db.collection('data/users/'+cloud.uid).get();
+      if(!priv.empty){const pm=priv.docs.find(d=>d.id==='meta');const pmd=pm?pm.data()||{}:{};
+        if(!pmd.movedToHouse){const tx=[];for(const d of priv.docs)if(d.id.startsWith('tx-'))tx.push(...(((d.data()||{}).items)||[]));
+          oldMeta=migrate({v:pmd.v||0,cards:pmd.cards||[],cats:pmd.cats||fresh().cats,settings:pmd.settings||{},rules:pmd.rules||{},tx});migTx=oldMeta.tx;markPriv=true}}}catch(e){}
+    if(!migTx&&!hasMeta&&!houseMonths.size&&localS.tx.length){oldMeta=localS;migTx=localS.tx}
+    if(oldMeta&&!hasMeta){S.cards=oldMeta.cards;S.cats=oldMeta.cats;S.settings=oldMeta.settings;S.rules=oldMeta.rules;if(!Object.keys(S.people).length&&oldMeta.people)S.people=oldMeta.people}
+  }
+  applyTheme();render();
+  const mine=members[cloud.uid];
+  if(mine&&people()[mine]){me=mine;try{localStorage.setItem(KEY+'-me',me)}catch(e){}}
+  else{const pid=await askWho();if(!readOnly)memberPend=pid}
+  if(!readOnly){
+    if(migTx){const have=new Set(S.tx.map(t=>t.id));let n=0;for(const t of migTx)if(!have.has(t.id)){S.tx.push(Object.assign({},t,{by:t.by||me}));n++}if(n)toast(`הועברו ${n} תנועות לחשבון המשותף ✓`)}
+    if(markPriv)afterFlush=async()=>{const r=cloud.db.doc('data/users/'+cloud.uid+'/meta');const g=await r.get();if(g.exists)await r.update({movedToHouse:true});else await r.set({movedToHouse:true})};
+    save();
+  }
+  render();if($('#v-settings').classList.contains('on'))renderSettings();
 }
 
 applyTheme();render();initCloud();
