@@ -2,7 +2,7 @@
    Network-first for everything same-origin (always fresh when online),
    falls back to the cache when offline. Cross-origin and non-GET are untouched
    (AI worker calls, payments, fonts). */
-const CACHE = "gp-app-v1";
+const CACHE = "gp-app-v2";
 const CORE = [
   "./", "./index.html", "./plans.html", "./manifest.webmanifest",
   "./css/plans.css", "./js/config.js", "./js/gypsum-rules.js", "./js/gypsum-engine.js",

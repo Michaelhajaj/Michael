@@ -1,9 +1,7 @@
 /* PWA: registers the service worker and shows an "install app" button. */
 (function () {
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").catch(function () {});
-    });
+    navigator.serviceWorker.register("sw.js").catch(function () {});
   }
   var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
   if (standalone) { document.documentElement.classList.add("is-app"); return; }
