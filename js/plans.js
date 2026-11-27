@@ -209,8 +209,9 @@
       const spec = R.wallElements[e.kind] || R.wallElements.box;
       const w = (e.w || spec.w) / 1000;
       const sel = S.sel?.el === e.id;
-      if (e.kind === "door" || e.kind === "window") {
-        ctx.strokeStyle = sel ? COLORS.sel : (e.kind === "door" ? "#8a5a2b" : "#3a7fb8"); ctx.lineWidth = 5;
+      const et = (R.wallElements[e.kind] || {}).type;
+      if (et === "door" || et === "opening") {
+        ctx.strokeStyle = sel ? COLORS.sel : (et === "door" ? "#8a5a2b" : "#3a7fb8"); ctx.lineWidth = 5;
         const a = corner(e.pos - w / 2, 0), b = corner(e.pos + w / 2, 0); line(a[0], a[1], b[0], b[1]);
       } else {
         const st = res?.warnings.some(m => m.includes(`${((e.pos * 1000) / 10).toFixed(0)} ס״מ`)) ? "clash" : "ok";
@@ -482,7 +483,7 @@
       if (!best) { added.skipped++; return; }
       if (best.it.elements.some(o => o.kind === el.kind && Math.abs(o.pos - best.t) < 0.15)) { added.dup = (added.dup || 0) + 1; return; }
       const spec = R.wallElements[el.kind] || R.wallElements.box;
-      best.it.elements.push({ id: uid(), kind: el.kind, pos: round2(best.t), w: el.width_mm > 0 && (el.kind === "door" || el.kind === "window") ? Math.round(el.width_mm) : spec.w, h: spec.h, y: spec.y, ai: true });
+      best.it.elements.push({ id: uid(), kind: el.kind, pos: round2(best.t), w: el.width_mm > 0 && ["door", "opening"].includes((R.wallElements[el.kind] || {}).type) ? Math.round(el.width_mm) : spec.w, h: spec.h, y: spec.y, ai: true });
       added.elements++;
     });
     // מחיצה שנוגעת בחדר רטוב – מסומנת כרטובה (חגורת הגבהה, ניצבים כל 40)
@@ -908,7 +909,7 @@
     const sides = r.opts.sides;
     let s = `<svg viewBox="${-pad} ${-pad} ${W + 2 * pad} ${H + 2 * pad}" xmlns="http://www.w3.org/2000/svg" font-family="Assistant, sans-serif"><g transform="translate(0 ${H}) scale(1 -1)">`;
     s += `<rect x="0" y="0" width="${W}" height="${H}" fill="#fffdf8" stroke="#333" stroke-width="14"/>`;
-    r.openings.forEach(op => s += `<rect x="${op.x0}" y="${op.y}" width="${op.w}" height="${op.h}" fill="${op.kind === "door" ? "#efe2d2" : "#dcebf6"}" stroke="#8a6a4a" stroke-width="10"/>`);
+    r.openings.forEach(op => s += `<rect x="${op.x0}" y="${op.y}" width="${op.w}" height="${op.h}" fill="${op.door ? "#efe2d2" : "#dcebf6"}" stroke="#8a6a4a" stroke-width="10"/>`);
     r.studs.forEach(st => {
       const c = st.type === "jamb" ? COLORS.clash : st.type === "cripple" ? "#7aa7d6" : COLORS.stud;
       if (st.type === "cripple" && st.op) {
@@ -1017,8 +1018,12 @@
 
   /* ---------------- Init ---------------- */
   function initSelects() {
-    $("#fixKind").innerHTML = Object.entries(R.fixtures).map(([k, v]) => `<option value="${k}">${v.icon} ${v.name}</option>`).join("");
-    $("#elKind").innerHTML = Object.entries(R.wallElements).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("");
+    const grouped = (obj, label) => {
+      const g = {}; Object.entries(obj).forEach(([k, v]) => (g[v.group || "אחר"] = g[v.group || "אחר"] || []).push([k, v]));
+      return Object.entries(g).map(([name, list]) => `<optgroup label="${esc(name)}">${list.map(([k, v]) => `<option value="${k}">${label(v)}</option>`).join("")}</optgroup>`).join("");
+    };
+    $("#fixKind").innerHTML = grouped(R.fixtures, v => `${v.icon} ${v.name}`);
+    $("#elKind").innerHTML = grouped(R.wallElements, v => v.name);
     $("#fixKind").onchange = () => setTool("fixture");
     $("#elKind").onchange = () => setTool("element");
   }

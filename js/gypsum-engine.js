@@ -174,6 +174,7 @@
     const maxSpot = Math.floor(clearGap - 2 * clr);   // קוטר החור הגדול ביותר שנכנס בלי לגעת בפרופיל
     const trimmed = [], avoid = [];
     fx.forEach(f => {
+      if ((R.fixtures[f.kind] || {}).noCut) return;          // צמוד תקרה – אין חיתוך בשלד
       if (f.fw + 2 * clr >= clearGap) trimmed.push(f); else avoid.push(f);
     });
     if (o.spotD > 0) {
@@ -397,8 +398,11 @@
       const spec = R.wallElements[e.kind] || R.wallElements.box;
       return { ...e, w: e.w || spec.w, h: e.h || spec.h, y: e.y ?? spec.y, name: spec.name };
     });
-    const openings = els.filter(e => e.kind === "door" || e.kind === "window").map(e => ({ ...e, x0: r1(e.pos - e.w / 2), x1: r1(e.pos + e.w / 2) }));
-    const boxes = els.filter(e => !(e.kind === "door" || e.kind === "window"));
+    const tOf = k => (R.wallElements[k] || R.wallElements.box).type;
+    const openings = els.filter(e => tOf(e.kind) === "door" || tOf(e.kind) === "opening").map(e => ({ ...e, door: tOf(e.kind) === "door", x0: Math.max(0, r1(e.pos - e.w / 2)), x1: Math.min(L, r1(e.pos + e.w / 2)), over: e.pos - e.w / 2 < -1 || e.pos + e.w / 2 > L + 1 }));
+    openings.filter(op => op.over).forEach(op => warnings.push(`${op.name} יוצא מגבולות הקיר – בדקו את המיקום והרוחב (נחתך לאורך הקיר).`));
+    const boxes = els.filter(e => tOf(e.kind) === "box");
+    const loads = els.filter(e => tOf(e.kind) === "load");
     const inOpening = x => openings.find(op => x > op.x0 + 1 && x < op.x1 - 1);
 
     // חיפוש היסט לוחות שממזער התנגשויות
@@ -433,7 +437,7 @@
     const forced = uniq([...forcedJ, ...jambs]);
     const { lines, conflicts } = layLines(L, S, forced, boxBlock);
     // ניצבים מלאים – מחוץ לפתחים בלבד
-    const studs = lines.filter(x => !inOpening(x)).map(x => {
+    const studs = lines.filter(x => x === 0 || x === L || !inOpening(x)).map(x => {
       let type = "regular";
       if (x === 0 || x === L) type = "end";
       if (jambs.some(j => Math.abs(j - x) < 1)) type = "jamb";
@@ -490,7 +494,7 @@
 
     // פרופילים
     // ניצבי צד דלת נספרים בנפרד כניצבים מחוזקים (1.25 מ״מ / מילוי עץ) – לא כפול
-    const doorJambs = new Set(openings.filter(op => op.kind === "door").flatMap(op => [op.x0, op.x1]));
+    const doorJambs = new Set(openings.filter(op => op.door).flatMap(op => [op.x0, op.x1]));
     const fullStuds = studs.filter(s => s.type !== "cripple" && !(s.type === "jamb" && doorJambs.has(s.x)));
     const crippleLens = studs.filter(s => s.type === "cripple").flatMap(s => {
       const op = s.op, out = [];
@@ -500,8 +504,8 @@
     });
     const studPack = pack1D([...fullStuds.map(() => studLen), ...crippleLens.filter(v => v > 50)], stock ? [stock] : prof.lengths);
     const trackW = prof.track || "U70";
-    const bottom = L - openings.filter(op => op.kind === "door").reduce((s, op) => s + op.w, 0);
-    const headers = openings.reduce((s, op) => s + (op.w + 300) * (op.kind === "window" ? 2 : 1), 0);
+    const bottom = L - openings.filter(op => op.door).reduce((s, op) => s + op.w, 0);
+    const headers = openings.reduce((s, op) => s + (op.w + 300) * (!op.door ? 2 : 1), 0);
     const trackPack = pack1D([bottom, L, ...(headers ? [headers] : [])].filter(v => v > 0), R.profiles[trackW]?.lengths || [3000]);
     const area = L * Hh / 1e6 - openings.reduce((s, op) => s + op.w * op.h, 0) / 1e6;
 
@@ -524,18 +528,30 @@
       });
       bill.add(screwKey(l, o.thickness), R.screws[screwKey(l, o.thickness)], "יח׳", n * 1.1);
     }
-    openings.filter(op => op.kind === "door").forEach(() => {
+    openings.filter(op => op.door).forEach(() => {
       bill.add("doorstud", `ניצב מחוזק לדלת (1.25 מ״מ, או ניצב עם מילוי עץ)`, "יח׳", 2);
       bill.add("doorangle", "זוויתן חיזוק 1.5 מ״מ לעיגון ניצבי דלת", "יח׳", 4);
     });
-    if (openings.some(op => op.kind === "door")) notes.push("דלתות: ניצבי צד מפרופיל 1.25 מ״מ או מילוי עץ לכל הגובה, מעוגנים בזוויתני 1.5 מ״מ (סעיף 3.5). תפרי לוחות ≥15 ס״מ מפינות הפתח – לוח בצורת ר׳.");
+    loads.forEach(e => {
+      const sp = R.wallElements[e.kind] || {};
+      if (sp.reinforce === "frame") {
+        bill.add("wcframe", "מתקן הטמנה לאסלה תלויה (של יצרן)", "יח׳", 1);
+        bill.add("wcstud", "ניצב מחוזק / כפול בצדי מתקן ההטמנה", "יח׳", 2);
+      } else {
+        bill.add("osb18", "לוח חיזוק OSB / עץ לבוד 18 מ״מ (בין הניצבים)", "מ״ר", ((e.w + 400) * Math.max(e.h, 300)) / 1e6);
+        bill.add("metal", R.screws.metal, "יח׳", 12);
+      }
+      notes.push(`${sp.name || "תלייה"} (${e.kg || sp.kg || "?"} ק״ג): ${sp.tip || "חיזוק בתוך המחיצה לפני הסגירה – לא לתלות על הגבס בלבד."}`);
+    });
+    openings.forEach(op => { const sp = R.wallElements[op.kind]; if (sp?.tip) notes.push(sp.name + ": " + sp.tip); });
+    if (openings.some(op => op.door)) notes.push("דלתות: ניצבי צד מפרופיל 1.25 מ״מ או מילוי עץ לכל הגובה, מעוגנים בזוויתני 1.5 מ״מ (סעיף 3.5). תפרי לוחות ≥15 ס״מ מפינות הפתח – לוח בצורת ר׳.");
     const faces = boards.filter(b => b.layer === o.layers);
     addFinish(bill, area * o.sides, faces, o.finish, o.wet);
     bill.add("corner", "פינת מגן קשיחה (לפינות חוץ ופתחים)", "מ׳", openings.reduce((s, op) => s + (2 * op.h + op.w) * o.sides, 0) / 1000);
     if (o.insulation && !o.lining) bill.add("wool", `צמר סלעים / זכוכית ${prof.width >= 70 ? 50 : 40} מ״מ`, "מ״ר", area * 1.05);
     if (!o.lining) notes.push("צנרת וחשמל בתוך המחיצה: מעבירים רק דרך החורים שבניצבים (או קדח נוסף), צנרת מים בתוך שרוול פלסטיק. אסור לחתוך את דפנות הניצב ואסור לחזק צנרת ללוח הגבס (ת״י 1924 סעיף 3.7).");
     if (o.wet && !o.lining) {
-      const curbLen = (L - openings.filter(op => op.kind === "door").reduce((s, op) => s + op.w, 0)) / 1000;
+      const curbLen = (L - openings.filter(op => op.door).reduce((s, op) => s + op.w, 0)) / 1000;
       warnings.push("מחיצה בחדר רטוב: לפני הגבס בונים שורת בלוקים יצוקים בבטון (חגורת הגבהה) ברוחב המחיצה, ועליה המחיצה – ת״י 1924 סעיף 3.2.2. גובה החגורה מעל הריצוף הגמור לפי המתכנן (אורבונד: לפחות 1 ס״מ מעל הריצוף; במפרטי מכרז רבים 10–15 ס״מ).");
       bill.add("curb", "חגורת הגבהה – שורת בלוקים יצוקים בבטון ברוחב המחיצה", "מ׳", curbLen, "בחדר רטוב, מתחת למחיצה");
     }

@@ -103,7 +103,7 @@ function render(p, results, o) {
       [[it.x], [it.x + it.w]].forEach(([x]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.02, drop, it.h), edgeMat); m.position.set(x, H - drop / 2, it.y + it.h / 2); root.add(m); });
       it.fixtures.forEach(f => {
         const X = it.x + f.x, Z = it.y + f.y;
-        const isLight = ["spot", "downlight", "linear", "magnetic"].includes(f.kind);
+        const isLight = !!(window.GYPSUM_RULES?.fixtures[f.kind]?.light);
         const col = isLight ? lightCol : f.kind === "speaker" ? 0x2a2a2a : 0xdddddd;
         const mat = new THREE.MeshStandardMaterial({ color: col, emissive: isLight ? lightCol : 0x000000, emissiveIntensity: isLight ? 2.2 : 0 });
         let m;
@@ -139,21 +139,21 @@ function render(p, results, o) {
       const grp = new THREE.Group();
       grp.position.set(it.a.x + nx * off, 0, it.a.y + nz * off); grp.rotation.y = -ang;
       // wall with openings: build from segments
-      const ops = it.elements.filter(e => e.kind === "door" || e.kind === "window").map(e => ({ x0: e.pos - e.w / 2000, x1: e.pos + e.w / 2000, y0: (e.y || 0) / 1000, y1: ((e.y || 0) + e.h) / 1000 })).sort((a, b) => a.x0 - b.x0);
+      const ops = it.elements.filter(e => ["door", "opening"].includes(window.GYPSUM_RULES?.wallElements[e.kind]?.type)).map(e => ({ x0: e.pos - e.w / 2000, x1: e.pos + e.w / 2000, y0: (e.y || 0) / 1000, y1: ((e.y || 0) + e.h) / 1000 })).sort((a, b) => a.x0 - b.x0);
       const box = (x0, x1, y0, y1) => { if (x1 - x0 < .005 || y1 - y0 < .005) return; const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, t), wallMat); m.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0); m.castShadow = m.receiveShadow = true; grp.add(m); };
       let x = 0;
       ops.forEach(op => { box(x, op.x0, 0, h); box(op.x0, op.x1, 0, op.y0); box(op.x0, op.x1, op.y1, h); x = op.x1; });
       box(x, len, 0, h);
       // door leaf / window glass
       ops.forEach((op, i) => {
-        const el = it.elements.filter(e => e.kind === "door" || e.kind === "window").sort((a, b) => a.pos - b.pos)[i];
-        const isDoor = el.kind === "door";
+        const el = it.elements.filter(e => ["door", "opening"].includes(window.GYPSUM_RULES?.wallElements[e.kind]?.type)).sort((a, b) => a.pos - b.pos)[i];
+        const isDoor = window.GYPSUM_RULES?.wallElements[el.kind]?.type === "door";
         const m = new THREE.Mesh(new THREE.BoxGeometry(op.x1 - op.x0 - .02, op.y1 - op.y0 - .01, isDoor ? .04 : .01),
           new THREE.MeshStandardMaterial({ color: isDoor ? 0x8a6a4a : 0x9cc9e8, transparent: !isDoor, opacity: isDoor ? 1 : .35, roughness: .6 }));
         m.position.set((op.x0 + op.x1) / 2, (op.y0 + op.y1) / 2, 0); grp.add(m);
       });
       // boxes on face
-      it.elements.filter(e => !(e.kind === "door" || e.kind === "window")).forEach(e => {
+      it.elements.filter(e => !["door", "opening"].includes(window.GYPSUM_RULES?.wallElements[e.kind]?.type)).forEach(e => {
         const m = new THREE.Mesh(new THREE.BoxGeometry(.08, e.kind === "data" ? .12 : .08, .01), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .4 }));
         m.position.set(e.pos, (e.y || 300) / 1000, t / 2 + .005); grp.add(m);
       });
@@ -169,7 +169,7 @@ function render(p, results, o) {
   walk.walls = p.items.filter(it => it.type !== "ceiling").map(it => {
     const dx = it.b.x - it.a.x, dz = it.b.y - it.a.y, len = Math.hypot(dx, dz) || 1;
     return { ax: it.a.x, az: it.a.y, ux: dx / len, uz: dz / len, len,
-      doors: it.elements.filter(e => e.kind === "door").map(e => [e.pos - e.w / 2000, e.pos + e.w / 2000]) };
+      doors: it.elements.filter(e => window.GYPSUM_RULES?.wallElements[e.kind]?.type === "door").map(e => [e.pos - e.w / 2000, e.pos + e.w / 2000]) };
   });
   walk.rooms = p.items.filter(it => it.type === "ceiling").map(it => ({ x: it.x, z: it.y, w: it.w, h: it.h, ceilY: H - (it.opts.dropCm || 15) / 100 }));
   walk.H = H;
