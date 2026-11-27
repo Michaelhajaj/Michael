@@ -23,7 +23,14 @@ function init() {
   host.appendChild(renderer.domElement);
   new ResizeObserver(size).observe(host);
   size();
-  (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+  setupWalk();
+  let last = performance.now();
+  (function loop(t) {
+    requestAnimationFrame(loop);
+    const dt = Math.min(0.05, ((t || performance.now()) - last) / 1000); last = t || performance.now();
+    if (walk.on) stepWalk(dt); else controls.update();
+    renderer.render(scene, camera);
+  })();
 }
 function size() {
   const r = host.getBoundingClientRect();
@@ -51,7 +58,8 @@ function render(p, results, o) {
   root = new THREE.Group(); scene.add(root);
   const H = p.roomH || 2.7;
   const wallMat = new THREE.MeshStandardMaterial({ color: o.wall, roughness: .9 });
-  const ceilMat = new THREE.MeshStandardMaterial({ color: o.ceil, roughness: .85, transparent: o.xray, opacity: o.xray ? .18 : 1 });
+  const ceilMat = new THREE.MeshStandardMaterial({ color: o.ceil, roughness: .85, transparent: o.xray, opacity: o.xray ? .18 : 1,
+    emissive: new THREE.Color(o.ceil).multiplyScalar(0.22) });
   const lightCol = kelvin(o.kelvin);
 
   // bounds
@@ -74,6 +82,7 @@ function render(p, results, o) {
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; root.add(floor);
 
   root.add(new THREE.HemisphereLight(0xffffff, 0x5a5243, 1.1));
+  root.add(new THREE.AmbientLight(lightCol, 0.55));   // אור מוחזר מהרצפה והקירות – כדי שהתקרה לא תיראה שחורה מלמטה
   const sun = new THREE.DirectionalLight(0xffffff, .5); sun.position.set(cx + span, H * 3, cz + span); root.add(sun);
 
   let pointCount = 0;
@@ -155,6 +164,16 @@ function render(p, results, o) {
     }
   });
 
+  // נתוני הליכה: גבולות הבית וקירות (עם פתחי דלתות) לחסימה
+  walk.bounds = { minX: minX - 0.3, maxX: maxX + 0.3, minZ: minY - 0.3, maxZ: maxY + 0.3 };
+  walk.walls = p.items.filter(it => it.type !== "ceiling").map(it => {
+    const dx = it.b.x - it.a.x, dz = it.b.y - it.a.y, len = Math.hypot(dx, dz) || 1;
+    return { ax: it.a.x, az: it.a.y, ux: dx / len, uz: dz / len, len,
+      doors: it.elements.filter(e => e.kind === "door").map(e => [e.pos - e.w / 2000, e.pos + e.w / 2000]) };
+  });
+  walk.rooms = p.items.filter(it => it.type === "ceiling").map(it => ({ x: it.x, z: it.y, w: it.w, h: it.h, ceilY: H - (it.opts.dropCm || 15) / 100 }));
+  walk.H = H;
+  if (walk.on && !walk.placed) placeWalker();
   if (firstFrame) {
     const big = p.items.filter(i => i.type === "ceiling").sort((a, b) => b.w * b.h - a.w * a.h)[0];
     if (big) { // מבט מתוך החדר הגדול, מפינה
@@ -167,5 +186,91 @@ function render(p, results, o) {
   }
 }
 
-window.GP3D = { render };
+/* ---------- מצב טיול בבית (גובה עיניים) ---------- */
+const walk = { on: false, placed: false, yaw: 0, pitch: 0, keys: {}, btn: {}, walls: [], rooms: [], bounds: null, H: 2.7 };
+const EYE = 1.6, SPEED = 1.4, R = 0.25;
+function placeWalker() {
+  const big = [...walk.rooms].sort((a, b) => b.w * b.h - a.w * a.h)[0];
+  if (big) { camera.position.set(big.x + big.w * 0.2, EYE, big.z + big.h * 0.8); walk.yaw = Math.atan2(-(big.w * 0.5), -(-big.h * 0.5)); }
+  else if (walk.bounds) camera.position.set((walk.bounds.minX + walk.bounds.maxX) / 2, EYE, (walk.bounds.minZ + walk.bounds.maxZ) / 2);
+  walk.pitch = 0.15; walk.placed = true; applyLook();
+}
+function applyLook() { camera.rotation.order = "YXZ"; camera.rotation.set(walk.pitch, walk.yaw, 0); }
+function blocked(x, z) {
+  const b = walk.bounds; if (b && (x < b.minX || x > b.maxX || z < b.minZ || z > b.maxZ)) return true;
+  return walk.walls.some(w => {
+    const t = (x - w.ax) * w.ux + (z - w.az) * w.uz;
+    if (t < -R || t > w.len + R) return false;
+    const d = Math.abs((x - w.ax) * -w.uz + (z - w.az) * w.ux);
+    if (d > R) return false;
+    return !w.doors.some(([a, c]) => t > a + 0.1 && t < c - 0.1);   // דרך הדלת עוברים
+  });
+}
+function stepWalk(dt) {
+  const k = walk.keys, bt = walk.btn;
+  const f = (k.ArrowUp || k.KeyW || bt.f ? 1 : 0) - (k.ArrowDown || k.KeyS || bt.b ? 1 : 0);
+  const s = (k.KeyD || bt.r ? 1 : 0) - (k.KeyA || bt.l ? 1 : 0);
+  const turn = (k.ArrowLeft || bt.tl ? 1 : 0) - (k.ArrowRight || bt.tr ? 1 : 0);
+  if (turn) { walk.yaw += turn * 1.6 * dt; applyLook(); }
+  if (f || s) {
+    const sin = Math.sin(walk.yaw), cos = Math.cos(walk.yaw);
+    const vx = (-sin * f + cos * s) * SPEED * dt, vz = (-cos * f - sin * s) * SPEED * dt;
+    const p = camera.position;
+    if (!blocked(p.x + vx, p.z)) p.x += vx;
+    if (!blocked(p.x, p.z + vz)) p.z += vz;
+  }
+}
+function setWalk(on) {
+  walk.on = on;
+  controls.enabled = !on;
+  const ui = host.querySelector(".w3-ui");
+  if (ui) ui.hidden = !on;
+  const tg = host.querySelector(".w3-toggle");
+  if (tg) tg.textContent = on ? "🔭 מבט מבחוץ" : "🚶 טיול בבית";
+  if (on) { walk.placed = false; placeWalker(); }
+  else { camera.rotation.set(0, 0, 0); controls.update(); }
+}
+function setupWalk() {
+  const css = document.createElement("style");
+  css.textContent = `.w3-bar{position:absolute;top:10px;right:10px;left:10px;display:flex;gap:8px;flex-wrap:wrap;z-index:3;pointer-events:none}
+  .w3-bar button,.w3-ui button{pointer-events:auto;background:rgba(18,18,17,.82);color:#f4f0e8;border:1px solid #c9a55c;border-radius:20px;padding:8px 14px;font:600 14px Assistant,system-ui,sans-serif;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+  .w3-ui{position:absolute;inset:auto 10px 10px 10px;display:flex;justify-content:space-between;align-items:flex-end;z-index:3;pointer-events:none}
+  .w3-ui[hidden]{display:none}
+  .w3-pad{direction:ltr;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px}
+  .w3-pad button{padding:0;font-size:20px;border-radius:12px}
+  .w3-hint{pointer-events:none;color:#f4f0e8;background:rgba(18,18,17,.6);border-radius:10px;padding:6px 10px;font:400 12.5px Assistant,system-ui,sans-serif;max-width:46%}
+  .gp-3d:fullscreen{height:100vh}`;
+  document.head.appendChild(css);
+  host.style.position = "relative";
+  const bar = document.createElement("div"); bar.className = "w3-bar";
+  bar.innerHTML = `<button type="button" class="w3-toggle">🚶 טיול בבית</button><button type="button" class="w3-up">👆 להסתכל על התקרה</button><button type="button" class="w3-fs">⛶ מסך מלא</button>`;
+  const ui = document.createElement("div"); ui.className = "w3-ui"; ui.hidden = true;
+  ui.innerHTML = `<div class="w3-hint">גוררים על המסך כדי להסתכל · כפתורים כדי ללכת · במחשב: חצים / WASD</div>
+    <div class="w3-pad"><button data-b="tl" aria-label="פנייה שמאלה">↶</button><button data-b="f" aria-label="קדימה">▲</button><button data-b="tr" aria-label="פנייה ימינה">↷</button>
+    <button data-b="l" aria-label="צעד שמאלה">◀</button><button data-b="b" aria-label="אחורה">▼</button><button data-b="r" aria-label="צעד ימינה">▶</button></div>`;
+  host.append(bar, ui);
+  bar.querySelector(".w3-toggle").onclick = () => setWalk(!walk.on);
+  bar.querySelector(".w3-up").onclick = () => { if (!walk.on) setWalk(true); walk.pitch = walk.pitch > 0.6 ? 0.1 : 0.95; applyLook(); };
+  bar.querySelector(".w3-fs").onclick = () => { const d = document; (d.fullscreenElement ? d.exitFullscreen() : host.requestFullscreen?.())?.catch?.(() => {}); };
+  ui.querySelectorAll("[data-b]").forEach(b => {
+    const k = b.dataset.b;
+    const on = e => { e.preventDefault(); walk.btn[k] = true; }, off = () => { walk.btn[k] = false; };
+    b.addEventListener("pointerdown", on); b.addEventListener("pointerup", off); b.addEventListener("pointerleave", off); b.addEventListener("pointercancel", off);
+  });
+  // מבט בגרירה
+  const el = renderer.domElement; let drag = null;
+  el.addEventListener("pointerdown", e => { if (walk.on) { drag = { x: e.clientX, y: e.clientY, yaw: walk.yaw, pitch: walk.pitch }; el.setPointerCapture(e.pointerId); } });
+  el.addEventListener("pointermove", e => {
+    if (!drag || !walk.on) return;
+    walk.yaw = drag.yaw + (e.clientX - drag.x) * 0.005;
+    walk.pitch = Math.max(-1.2, Math.min(1.45, drag.pitch + (e.clientY - drag.y) * 0.005));
+    applyLook();
+  });
+  el.addEventListener("pointerup", () => drag = null);
+  el.style.touchAction = "none";
+  window.addEventListener("keydown", e => { if (!walk.on || e.target.closest("input,textarea,select")) return; walk.keys[e.code] = true; if (e.code.startsWith("Arrow")) e.preventDefault(); });
+  window.addEventListener("keyup", e => { walk.keys[e.code] = false; });
+}
+
+window.GP3D = { render, setWalk: on => setWalk(on), teleport: (x, z, yaw) => { camera.position.set(x, EYE, z); walk.yaw = yaw; applyLook(); }, walkState: () => ({ on: walk.on, x: camera.position.x, z: camera.position.z, pitch: walk.pitch }) };
 window.dispatchEvent(new Event("gp3d-ready"));
