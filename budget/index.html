@@ -8,6 +8,11 @@
 <meta name="apple-mobile-web-app-title" content="התקציב שלי">
 <title>התקציב שלי</title>
 <meta name="theme-color" content="#1b64be">
+<!--standalone-->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!--/standalone-->
 <style>
 :root{
   color-scheme: light;
@@ -132,7 +137,7 @@ tr.tot td,tr.tot th{font-weight:800;border-bottom:0;color:var(--ink)}
 .filters > *{flex:1 1 140px}
 label.f{display:block;font-size:14px;font-weight:600;margin-bottom:12px}
 .h{display:block;font-weight:400;color:var(--ink-2);font-size:12.5px;margin-top:3px}
-input[type=text],input[type=number],input[type=date],input[type=month],select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:5px;font-size:16px}
+input[type=text],input[type=number],input[type=date],input[type=month],input[type=email],input[type=password],select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:5px;font-size:16px}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 .seg{display:flex;background:var(--surface-2);border-radius:12px;padding:4px;gap:4px;margin-bottom:14px}
 .seg button{flex:1;border:0;background:none;padding:10px 4px;border-radius:9px;font-weight:700;cursor:pointer;color:var(--ink-2)}
@@ -380,6 +385,17 @@ ol.steps li{margin-bottom:6px}
       <p class="muted" style="font-size:13.5px">מעכשיו כל תנועה שאחד מכם רושם מופיעה אצל השני תוך כמה שניות, עם השם של מי שרשם.</p>
     </details>
   </div>
+  <div class="card" id="srvCard" hidden>
+    <h2>🔌 שרת הסנכרון</h2>
+    <p class="sub" id="srvNote"></p>
+    <div id="srvPaste">
+      <label class="f">הדבק כאן את פרטי החיבור מ-Firebase (firebaseConfig)
+        <textarea id="srvCfg" rows="5" dir="ltr" placeholder="const firebaseConfig = { apiKey: ..., projectId: ... }"></textarea>
+      </label>
+      <button class="btn small" id="srvSave">שמור והתחבר</button>
+    </div>
+    <div class="btns" id="srvOut" hidden><button class="btn small ghost" id="srvLogout">התנתק</button></div>
+  </div>
   <div class="card">
     <h2>💝 מעשרות</h2>
     <label class="check"><input type="checkbox" id="mOn"> <span>לחשב מעשרות<small>יופיע בסיכום כמה צריך לתת החודש וכמה כבר נתת</small></span></label>
@@ -558,10 +574,22 @@ ol.steps li{margin-bottom:6px}
     <button class="btn" id="joinGo" type="button" style="width:100%">המשך</button>
   </div>
 </div>
+<div class="modal" id="login" role="dialog" aria-modal="true" aria-labelledby="loginT">
+  <form class="sheet" id="loginForm" style="max-width:420px" autocomplete="on">
+    <h3 id="loginT">🔐 כניסה לתקציב המשותף</h3>
+    <p class="muted" style="margin-top:0">היכנס עם המייל והסיסמה שהוגדרו לך. הטלפון יזכור אותך, כך שזה נדרש רק פעם אחת.</p>
+    <label class="f">מייל<input type="email" id="lgEmail" autocomplete="username" dir="ltr"></label>
+    <label class="f">סיסמה<input type="password" id="lgPass" autocomplete="current-password" dir="ltr"></label>
+    <p id="lgErr" style="color:var(--bad);margin:0 0 10px" hidden></p>
+    <button class="btn" type="submit" id="lgGo" style="width:100%">כניסה</button>
+    <button class="btn ghost small" type="button" id="lgLocal" style="width:100%;margin-top:8px">להמשיך בלי סנכרון (רק במכשיר הזה)</button>
+  </form>
+</div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!--standalone--><script src="firebase-config.js"></script><!--/standalone-->
 <script>
 (function(){
 'use strict';
@@ -888,8 +916,9 @@ function renderSettings(){
     $(type==='expense'?'#catExpEdit':'#catIncEdit').innerHTML=S.cats[type].map(c=>`<div class="it" data-type="${type}" data-id="${esc(c.id)}"><input class="ic" type="text" value="${esc(c.icon)}" maxlength="4" aria-label="אימוג'י"><input type="text" class="nm" value="${esc(c.name)}" aria-label="שם">${accSel(c.acc,true)}${type==='income'?`<label title="הכנסה שלא חייבת במעשר"><input type="checkbox" class="nmc"${c.nm?' checked':''}>בלי מעשר</label>`:''}${c.id==='maaser'?'':`<button data-rmcat="${type}:${esc(c.id)}" aria-label="מחק">🗑️</button>`}</div>`).join('');
   $('#theme').value=st.theme||'';
   $('#peopleEdit').innerHTML=Object.entries(people()).map(([k,x])=>`<div class="it" data-pid="${esc(k)}"><span class="dotc" style="--pc:${esc(x.color)}"></span><input type="text" class="nm" value="${esc(x.name)}" maxlength="20" aria-label="שם"><label style="font-size:12.5px;white-space:nowrap">הכנסות ל:</label><select class="ia" aria-label="לאן נכנסות ההכנסות"><option value="biz"${incAccOf(k)==='biz'?' selected':''}>🧰 עסקי</option><option value="home"${incAccOf(k)==='home'?' selected':''}>🏠 משותף</option><option value="ask"${incAccOf(k)==='ask'?' selected':''}>❓ לשאול</option></select>${k===me?'<span class="pill">אתה</span>':''}</div>`).join('')||'<div class="muted">עוד לא נבחר שם</div>';
-  $('#meName').textContent=pName(me)||'…';
-  $('#whoNote').textContent=cloud?(readOnly?'🔒 אתה מחובר עם הרשאת צפייה בלבד.':'☁️ הנתונים משותפים לכל מי שהקישור משותף איתו בהרשאת עריכה, ומתעדכנים אצל כולם תוך שניות. כל תנועה מסומנת בשם של מי שרשם אותה.'):'📱 כרגע הנתונים שמורים רק במכשיר הזה. כדי לסנכרן עם אסתר, פותחים את האפליקציה מהקישור ב-Claude (ההסבר למטה).';
+  $('#meName').textContent=pName(me)||'…';renderSrv();
+  $('#shareHow').hidden=backend!=='claude';
+  $('#whoNote').textContent=cloud&&backend==='firebase'?'☁️ הנתונים נשמרים בשרת שלכם ומסונכרנים בין כל מי שנכנס עם מייל וסיסמה. כל תנועה מסומנת בשם של מי שרשם אותה.':cloud?(readOnly?'🔒 אתה מחובר עם הרשאת צפייה בלבד.':'☁️ הנתונים משותפים לכל מי שהקישור משותף איתו בהרשאת עריכה, ומתעדכנים אצל כולם תוך שניות. כל תנועה מסומנת בשם של מי שרשם אותה.'):'📱 כרגע הנתונים שמורים רק במכשיר הזה. כדי לסנכרן עם אסתר, פותחים את האפליקציה מהקישור ב-Claude (ההסבר למטה).';
 }
 function applyTheme(){const t=S.settings.theme;if(t)document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme')}
 
@@ -1406,13 +1435,59 @@ function applyHouse(snap){
   else{S.tx=Object.values(items).map(t=>Object.assign({},t))}
   idx=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
 }
+let backend='local';
+async function goLocal(){backend='local';setSync('local');if(!me||!people()[me])await askWho()}
 async function initCloud(){
-  const local=async()=>{setSync('local');if(!me||!people()[me])await askWho()};
-  if(!window.claude||typeof window.claude.use!=='function')return local();
-  let db=null,user=null;try{[db,user]=await Promise.all([claude.use('db'),claude.use('user')])}catch(e){}
-  if(!db||!user)return local();
-  const id=await user.id().catch(()=>null);if(!id)return local();
-  let canWrite=null;try{canWrite=await user.can('data.write')}catch(e){}
+  if(window.claude&&typeof window.claude.use==='function'){
+    let db=null,user=null;try{[db,user]=await Promise.all([claude.use('db'),claude.use('user')])}catch(e){}
+    if(db&&user){const id=await user.id().catch(()=>null);
+      if(id){let canWrite=null;try{canWrite=await user.can('data.write')}catch(e){}backend='claude';return startHouse(db,id,canWrite)}}
+    return goLocal();
+  }
+  if(fbConfig())return initFirebase();
+  return goLocal();
+}
+// ---------- Firebase (free Google server) for the standalone app ----------
+const FBV='10.12.2';
+function parseFbConfig(txt){if(!txt)return null;if(typeof txt==='object')return txt.apiKey&&txt.projectId?txt:null;const o={};
+  for(const k of ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId']){const m=String(txt).match(new RegExp('["\']?'+k+'["\']?\\s*:\\s*["\']([^"\']+)["\']'));if(m)o[k]=m[1]}
+  return o.apiKey&&o.projectId?o:null}
+function fbConfig(){const w=parseFbConfig(window.FIREBASE_CONFIG);if(w)return w;try{return parseFbConfig(JSON.parse(localStorage.getItem(KEY+'-fb')||'null'))}catch(e){return null}}
+const loadScript=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
+function fbAdapter(fs){
+  const wrapDoc=r=>({id:r.id,get:()=>r.get().then(x=>({id:x.id,exists:x.exists,data:()=>x.data()})),set:d=>r.set(d),update:d=>r.set(d,{merge:true}),delete:()=>r.delete()});
+  return{collection:p=>{if(p.startsWith('data/'))return{get:async()=>({docs:[],empty:true})};const c=fs.collection(p);
+      return{doc:id=>wrapDoc(c.doc(id)),get:()=>c.get(),onSnapshot:(n,e)=>c.onSnapshot(n,err=>{if(e)e({code:err&&err.code==='permission-denied'?'revoked':'unavailable',message:String(err&&err.message)})})}},
+    doc:path=>wrapDoc(fs.doc(path))}}
+let fbAuth=null;
+async function initFirebase(){
+  backend='firebase';setSync('loading');
+  try{await loadScript(`https://www.gstatic.com/firebasejs/${FBV}/firebase-app-compat.js`);
+    await Promise.all(['auth','firestore'].map(x=>loadScript(`https://www.gstatic.com/firebasejs/${FBV}/firebase-${x}-compat.js`)))}
+  catch(e){toast('⚠️ אין חיבור לשרת הסנכרון כרגע – עובד במכשיר בלבד');return goLocal()}
+  try{if(!firebase.apps.length)firebase.initializeApp(fbConfig())}catch(e){toast('⚠️ פרטי החיבור לשרת לא תקינים');return goLocal()}
+  const fs=firebase.firestore();try{await fs.enablePersistence({synchronizeTabs:true})}catch(e){}
+  fbAuth=firebase.auth();
+  fbAuth.onAuthStateChanged(u=>{
+    if(u){$('#login').classList.remove('on');if(!cloud)startHouse(fbAdapter(fs),u.uid,true)}
+    else{setSync('local');$('#login').classList.add('on');setTimeout(()=>$('#lgEmail').focus(),50)}});
+}
+$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const em=$('#lgEmail').value.trim(),pw=$('#lgPass').value;
+  if(!em||!pw){$('#lgErr').textContent='מלא מייל וסיסמה';$('#lgErr').hidden=false;return}
+  $('#lgGo').disabled=true;$('#lgErr').hidden=true;
+  try{await fbAuth.signInWithEmailAndPassword(em,pw)}
+  catch(err){const c=err&&err.code||'';$('#lgErr').textContent=/invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(c)?'המייל או הסיסמה לא נכונים':
+    /network/.test(c)?'אין חיבור לאינטרנט':/too-many/.test(c)?'יותר מדי ניסיונות. נסה שוב בעוד כמה דקות':'הכניסה לא הצליחה ('+c+')';$('#lgErr').hidden=false}
+  finally{$('#lgGo').disabled=false}});
+$('#lgLocal').onclick=()=>{$('#login').classList.remove('on');goLocal()};
+$('#srvSave').onclick=()=>{const c=parseFbConfig($('#srvCfg').value);if(!c){toast('לא מצאתי apiKey ו-projectId בטקסט שהדבקת');return}
+  try{localStorage.setItem(KEY+'-fb',JSON.stringify(c))}catch(e){}location.reload()};
+$('#srvLogout').onclick=async()=>{if(!await yes('להתנתק מהשרת בטלפון הזה?','כן, התנתק'))return;try{await fbAuth.signOut()}catch(e){}location.reload()};
+function renderSrv(){const c=$('#srvCard');if(backend==='claude'){c.hidden=true;return}c.hidden=false;
+  const has=!!fbConfig(),fixed=!!parseFbConfig(window.FIREBASE_CONFIG);
+  $('#srvPaste').hidden=fixed||(has&&backend==='firebase'&&!!cloud);$('#srvOut').hidden=!(backend==='firebase'&&cloud);
+  $('#srvNote').textContent=backend==='firebase'&&cloud?`☁️ מחובר לשרת ומסונכרן${fbAuth&&fbAuth.currentUser?' בתור '+fbAuth.currentUser.email:''}.`:has?'יש פרטי חיבור, אבל עוד לא נכנסת עם מייל וסיסמה.':'עוד לא מחובר לשרת. בלי שרת, הנתונים נשמרים רק בטלפון הזה.'}
+async function startHouse(db,id,canWrite){
   const localS=Object.assign({},S,{tx:S.tx.slice()});cloud={db,uid:id};setSync('loading');
   let ready=false;
   const timer=setTimeout(()=>{if(!ready){setSync('err');toast('⚠️ אין חיבור לסנכרון כרגע – מוצגים הנתונים השמורים במכשיר')}},10000);
@@ -1448,6 +1523,7 @@ async function firstLoad(canWrite,localS){
 }
 
 applyTheme();render();initCloud();
+if('serviceWorker' in navigator&&location.protocol==='https:'&&!window.claude){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(renderDash,150)});
 })();
 </script>
