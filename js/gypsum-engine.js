@@ -321,7 +321,7 @@
       if (W > 10000 || H > 10000) warnings.push("תקרת לוחות מחוררים ארוכה מ-10 מ׳ – נדרש מישק התפשטות (ת״י 1924 5.10.1).");
     }
     if (o.boardType === "cement") notes.push("לוח צמנטי: ברגים ומרק ייעודיים של היצרן (לא ברגי גבס רגילים), סרט רשת עמיד אלקלי.");
-    if (o.boardType === "xray") notes.push("לוח הגנה מקרינה: עובי ושכבות לפי דרישת הממונה על הקרינה; תפרים וברגים לפי מערכת היצרן.");
+    if (o.boardType === "xray") notes.push("SafeBoard: לוח 62.5×240 ס״מ, 12.5 מ״מ, 17 ק״ג/מ״ר, ליבת בריום סולפט (ללא עופרת); מספר הלוחות לפי מתח המכשיר ודרישת הממונה על הקרינה; שפכטל SafeBoard ייעודי.");
     notes.push("פס איטום והפרדה (קופריבנד) לכל אורך המסילה ההיקפית, בכל מפגש של השלד עם קיר או תקרה בנויה.");
     if (o.dropCm < 8) warnings.push("הנמכה של פחות מ-8 ס״מ – אין מספיק מקום לשתי וערב + ספוטים. שקלו פרופיל ישיר (F47 עם מתלה ישיר).");
     const deepFix = fx.filter(f => ["downlight", "speaker"].includes(f.kind));
@@ -336,7 +336,7 @@
     const per = C.perimeter[o.perimeter] || C.perimeter.none;
     if (per.item) {
       const det = o.perimeter === "str" ? ` (ניתוק ${o.strGap || 6} מ״מ, ${o.strThk || "לפי התוכנית"}, ${o.strColor || "לבן"})`
-        : o.perimeter === "shadow" ? ` (${o.shadowModel || "לפי התוכנית"})` : "";
+        : o.perimeter === "shadow" ? ` (${o.shadowModel || "לפי התוכנית"}, ${o.strGap ? o.strGap + " מ״מ" : ""} ${o.strColor || ""})`.replace(/\s+\)/, ")") : "";
       const alu = o.perimeter === "str" || o.perimeter === "shadow" || o.perimeter === "knife";
       if (alu) bill.add("perim-" + o.perimeter + det, per.item + det + " – מוט 3 מ׳", "יח׳", ceil(perim * 1.05 / 3000), `${(perim / 1000).toFixed(1)} מ׳ היקף + פחת לפינות`);
       else bill.add("perim-" + o.perimeter + det, per.item + det, "מ׳", perim / 1000 * 1.05);
@@ -396,7 +396,7 @@
     const L = r1(input.L), Hh = r1(o.height);
     const warnings = [], notes = [];
     const P = R.partition, BW = R.board.width;
-    const strict = o.wet || o.tiles;
+    const strict = o.wet || o.tiles || o.boardType === "xray";
     const stdS = o.lining ? (strict ? R.lining.profileSpacingWet : R.lining.profileSpacing) : (strict ? P.studSpacingWet : P.studSpacing);
     let S = o.spacing ? Math.min(o.spacing, stdS) : stdS;
     if (o.spacing && o.spacing > stdS) warnings.push(`מרחק ניצבים ${o.spacing} מ״מ חורג מהתקן (${stdS} מ״מ) – הוחזר לערך התקני.`);
@@ -592,6 +592,11 @@
     if (o.wet) {
       notes.push("חדר רטוב: ניצבים כל ≤406 מ״מ, עיגון מסילות כל ≤300 מ״מ, פס איטום רציף מיחידה אחת, חגורת הגבהה, אטימת המרווח התחתון של הלוחות.");
       bill.add("sealant", "חומר איטום לתחתית הלוחות (סיליקון / פוליאוריטן)", "שפופרת", ceil(L / 4000) * o.sides);
+    }
+    if (o.boardType === "xray") {
+      const t = R.board.types.xray.leadEq, i90 = t.kv.indexOf(90), n = Math.min(4, Math.max(1, o.layers));
+      notes.push(`SafeBoard: ${n} לוח/ות בכל צד ≈ ${t.rows[n][i90]} מ״מ עופרת ב-90kV (מרפאת שיניים: 2 לוחות ≈ 1.4 מ״מ עופרת). הלוח התחתון בגובה 40 ס״מ לפחות, הסטת מישקים בין השכבות, איחוי בשפכטל SafeBoard. מערכת K131: F30 בשכבה אחת, F90 בשתיים.`);
+      warnings.push("⚠ סתירה: היצרן מורה להתקין SafeBoard אופקית עם ניצבים כל 60 ס״מ, אבל ת״י 1924 סעיף 3.3.1.1 מגביל לוחות אופקיים ל-406 מ״מ בין ניצבים. החישוב כאן לפי המחמיר – ניצבים כל 40 ס״מ.");
     }
     if (o.tiles) notes.push(`חיפוי אריחים: משקל ≤30 ק״ג/מ״ר, ועד ${P.tileMaxKgPerM[o.layers >= 2 ? 2 : 1]} ק״ג למטר אורך מחיצה (3.9.3).`);
     if (L > P.expansionJoint) warnings.push("מחיצה ארוכה מ-12 מ׳ – נדרש מישק התפשטות (3.8.1).");

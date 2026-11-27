@@ -593,10 +593,10 @@
       ["dropCm", "הנמכה (ס״מ)", "num", 1],
       ["profile", "מערכת התקרה", "sel", { F47: "F47 שתי וערב (תלויה)", C60: "C60 שתי וערב (תלויה)", C50: "זקפים C50 בין קירות – עד 1.70 מ׳", C70: "זקפים C70 בין קירות – עד 2.00 מ׳", C100: "זקפים C100 בין קירות – עד 2.40 מ׳" }],
       ["perimeter", "פרט היקפי", "sel", { none: "מסילה רגילה", str: "STR – תקרה מרחפת (אלומיניום)", knife: "ויה ביזונה (סכין) – קו לד נסתר", shadow: "פרופיל ניתוק (צל)", cove: "קרניז לד נסתר" }],
-      ["strGap", "STR – גודל הניתוק (מ״מ)", "num", 1],
+      ["strGap", "גודל / רוחב הניתוק (מ״מ) – לפי התוכנית", "num", 1],
       ["strThk", "STR – דגם / גובה H", "sel", { "H7": "STR H=7 מ״מ", "H13": "STR H=13 מ״מ", "H20": "STR H=20 מ״מ", "H25": "STR H=25 מ״מ", "1.2": "עובי 1.2", "2.0": "עובי 2.0", "אחר": "אחר – לפי התוכנית" }],
-      ["strColor", "STR – גימור", "sel", { "לבן": "לבן", "שחור": "שחור", "אנודייז כסף מט": "אנודייז (כסף מט)", "RAL": "גוון RAL לפי הזמנה" }],
-      ["shadowModel", "פרופיל ניתוק – דגם", "sel", { "TAF H13": "TAF H=13", "TAF H25": "TAF H=25", "OM H8": "אומגה OM H=8", "OM H13": "אומגה OM H=13", "OM H25": "אומגה OM H=25", "TAFG 12×12": "TAFG פרופיל ת׳ 12×12 (ג.ק.)", "אחר": "אחר – לפי התוכנית" }],
+      ["strColor", "צבע / גימור הניתוק", "sel", { "לבן": "לבן", "שחור": "שחור", "אנודייז כסף מט": "אנודייז (כסף מט)", "RAL": "גוון RAL לפי הזמנה" }],
+      ["shadowModel", "פס ניתוק – דגם", "sel", { "TAF H13": "TAF H=13", "TAF H25": "TAF H=25", "OM H8": "אומגה OM H=8", "OM H13": "אומגה OM H=13", "OM H25": "אומגה OM H=25", "TAFG 12×12": "TAFG פרופיל ת׳ 12×12 (ג.ק.)", "אחר": "אחר – לפי התוכנית" }],
       ["thickness", "עובי לוח", "sel", { 12.5: "12.5 מ״מ", 15.9: "15.9 מ״מ" }],
       ["layers", "שכבות לוחות", "sel", { 1: "שכבה אחת", 2: "שתי שכבות" }],
       ["boardType", "סוג לוח", "sel", Object.fromEntries(Object.entries(R.board.types).map(([k, v]) => [k, v.name]))],
@@ -687,7 +687,7 @@
     const kind = it.type === "ceiling" ? "ceiling" : it.opts.lining ? "lining" : "wall";
     const res = S.results[it.id];
     let html = `<h4>${kind === "ceiling" ? "תקרת גבס" : kind === "lining" ? "חיפוי קיר" : "מחיצת גבס"}</h4><p class="gp-sub">כל הערכים פתוחים לשינוי. ערך שחורג מהתקן יוחזר לערך התקני עם הערה.</p>`;
-    html += fieldDefs[kind].filter(d => (!d[0].startsWith("str") || it.opts.perimeter === "str") && (d[0] !== "shadowModel" || it.opts.perimeter === "shadow")).map(d => fieldHtml(d, d[0] === "w" || d[0] === "h" ? it[d[0]] : it.opts[d[0]])).join("");
+    html += fieldDefs[kind].filter(d => (!d[0].startsWith("str") || it.opts.perimeter === "str" || (it.opts.perimeter === "shadow" && d[0] !== "strThk")) && (d[0] !== "shadowModel" || it.opts.perimeter === "shadow")).map(d => fieldHtml(d, d[0] === "w" || d[0] === "h" ? it[d[0]] : it.opts[d[0]])).join("");
     if (res) html += `<p class="gp-hint">${kind === "ceiling" ? `משניים כל ${res.sec} מ״מ (תקן: ${res.stdSec}), ראשיים כל ≤${res.pri}, מתלים כל ${res.hangerSpacing} מ״מ` : `ניצבים כל ≤${res.S} מ״מ (תקן: ${res.stdS}), אורך ניצב ${res.studLen} מ״מ`}</p>`;
     // alternatives
     html += `<hr><p class="gp-sub">השוואת אפשרויות (לחצו לבחירה)</p>` + altTable(it);
